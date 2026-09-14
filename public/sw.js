@@ -16,9 +16,17 @@ self.__XERT_BUILD_ASSETS__ = [];
 const BUILD_ASSETS = self.__XERT_BUILD_ASSETS__;
 
 self.addEventListener('install', event => {
-  // Upgrades wait for existing tabs to close so an owner session can never
-  // mix an old lazy-loaded app with a new release cache.
+  // Upgrades wait rather than taking over immediately, so an owner session can
+  // never mix an old lazy-loaded app with a new release cache. The page asks
+  // this worker to take over once somebody accepts the update.
   event.waitUntil(precacheCurrentBuild());
+});
+
+// A new build installs and then waits rather than swapping the cache under a
+// running session. The page offers the update, and only when somebody accepts
+// does it ask this worker to take over.
+self.addEventListener('message', event => {
+  if (event.data?.type === 'XERT_SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

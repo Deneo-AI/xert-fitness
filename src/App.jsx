@@ -8,6 +8,7 @@ import { SupabaseAuthProvider } from '@/lib/SupabaseAuthContext';
 import AdminRoute from '@/components/admin/AdminRoute';
 import ScrollToTop from './components/ScrollToTop';
 import RouteMetadata from './lib/RouteMetadata';
+import AppUpdatePrompt from '@/components/public/AppUpdatePrompt';
 
 // Routes load on demand, keeping the initial public visit lightweight.
 const Home = lazy(() => import('./pages/Home'));
@@ -101,6 +102,8 @@ function App() {
           <AppRoutes />
         </Router>
         <Toaster />
+        {/* A deployed fix is no use to somebody still running the old build. */}
+        <AppUpdatePrompt />
       </QueryClientProvider>
     </SupabaseAuthProvider>
   );

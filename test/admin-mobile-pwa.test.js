@@ -179,8 +179,16 @@ test('production build is wired to inject and verify the full offline asset list
   assert.match(worker, /\.\.\.BUILD_ASSETS/);
   assert.match(worker, /admin-manifest\.json/);
   assert.match(worker, /navigationPreload\?\.enable\(\)/);
-  assert.match(worker, /Upgrades wait for existing tabs to close/);
-  assert.doesNotMatch(worker, /skipWaiting/);
+  assert.match(worker, /Upgrades wait rather than taking over immediately/);
+  // A release must never swap the cache under a running session on its own.
+  // It may only step forward when the page asks, which the page does after
+  // somebody accepts the update notice — otherwise a fix sat waiting for every
+  // tab to close, which on an installed phone app can be days.
+  assert.match(worker, /addEventListener\('message'[\s\S]*XERT_SKIP_WAITING'\) self\.skipWaiting\(\)/);
+  for (const handler of ['install', 'activate', 'fetch']) {
+    const body = worker.match(new RegExp(`addEventListener\\('${handler}'[\\s\\S]*?\\n\\}\\);`))?.[0] ?? '';
+    assert.doesNotMatch(body, /skipWaiting/, `the ${handler} handler must not take over on its own`);
+  }
   assert.match(worker, /install step owns this release's cached HTML/);
   assert.match(
     worker,

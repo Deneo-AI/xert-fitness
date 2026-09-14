@@ -272,6 +272,8 @@
     -webkit-mask-image: linear-gradient(180deg, transparent, black 25%, black 75%, transparent);
   }
   .xert-divider { height: 1px; background: linear-gradient(90deg, transparent, rgb(var(--accent-default-rgb) / 0.28), transparent); }
+  /* A panel that floats over the page: the update notice, the mobile sheet. */
+  .xert-float { box-shadow: 0 20px 50px -18px rgb(var(--surface-scrim-rgb) / 0.85); }
   .xert-glass {
     background-color: rgb(var(--surface-base-rgb) / 0.72);
     backdrop-filter: blur(var(--dock-blur));
