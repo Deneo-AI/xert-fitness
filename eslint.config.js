@@ -55,6 +55,24 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+      // Declaring `rules` above replaces the rules that came in with the
+      // recommended config, so this has to be named explicitly. Without it a
+      // reference to something that no longer exists — a state setter removed
+      // in a refactor, say — builds and ships, and only fails in front of
+      // somebody using it, as "Can't find variable: a" in minified code.
+      "no-undef": "error",
+    },
+  },
+  {
+    // The libraries and serverless handlers were never linted at all, which is
+    // where most of the logic lives. They get the same check.
+    files: ["src/lib/**/*.js", "api/**/*.js"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: { ecmaVersion: 2022, sourceType: "module" },
+    },
+    rules: {
+      "no-undef": "error",
     },
   },
 ];

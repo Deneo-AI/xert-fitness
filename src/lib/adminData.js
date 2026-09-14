@@ -697,7 +697,19 @@ export async function listCasualVisits({ limit = 200 } = {}) {
   return { installed: true, rows: data || [] };
 }
 
-export async function staffBookMemberIntoClass(sessionId, memberId, requestId = globalThis.crypto?.randomUUID?.()) {
+/**
+ * A request id for one booking decision, so a retry settles once instead of
+ * twice. Built here rather than in a default parameter: the minifier lowers
+ * `globalThis.crypto?.randomUUID?.()` in that position into code that reads a
+ * variable which is no longer in scope, and the whole call dies with
+ * "Can't find variable: a" in front of whoever pressed the button.
+ */
+function newDecisionRequestID() {
+  return globalThis.crypto?.randomUUID?.();
+}
+
+export async function staffBookMemberIntoClass(sessionId, memberId, requestId) {
+  requestId = requestId || newDecisionRequestID();
   if (!sessionId || !memberId) throw new Error('Choose a class and a member first.');
   if (!requestId) throw new Error('A secure booking request ID could not be created. Refresh and try again.');
   const { data, error } = await supabase.rpc('admin_book_member_into_class', {
@@ -1653,7 +1665,8 @@ export async function getAdminDailyOperations() {
   throw new Error(error.message);
 }
 
-export async function adminSetBookingStatus(bookingId, status, requestId = globalThis.crypto?.randomUUID?.()) {
+export async function adminSetBookingStatus(bookingId, status, requestId) {
+  requestId = requestId || newDecisionRequestID();
   const mutation = normalizeBookingStatusMutation(bookingId, status);
   if (!requestId) throw new Error('A secure booking decision request ID could not be created. Refresh and try again.');
   const { data, error } = await supabase.rpc('admin_set_booking_status_with_notice', {
@@ -1687,7 +1700,8 @@ export async function adminSetBookingStatus(bookingId, status, requestId = globa
   throw new Error(message);
 }
 
-export async function adminPromoteNextWaitlisted(sessionId, expectedBookingId, requestId = globalThis.crypto?.randomUUID?.()) {
+export async function adminPromoteNextWaitlisted(sessionId, expectedBookingId, requestId) {
+  requestId = requestId || newDecisionRequestID();
   const mutation = normalizeSessionPromotion(sessionId, expectedBookingId, requestId);
   const { data, error } = await supabase.rpc('admin_promote_next_waitlisted_with_notice', {
     p_session_id: mutation.sessionId,

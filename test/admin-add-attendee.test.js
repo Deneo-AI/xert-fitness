@@ -36,7 +36,10 @@ test('a response is labelled by the name it actually carries, wherever that live
 test('staff can book a member into a class from the Command Centre', async () => {
   // The database already did this atomically for the app; the web had no way in.
   const data = await read('../src/lib/adminData.js');
-  assert.match(data, /export async function staffBookMemberIntoClass\(sessionId, memberId, requestId = globalThis\.crypto\?\.randomUUID\?\.\(\)\)/);
+  // The id is built in the body, not in a default parameter: the minifier
+  // mangles the optional call there into a reference that is out of scope.
+  assert.match(data, /export async function staffBookMemberIntoClass\(sessionId, memberId, requestId\)/);
+  assert.match(data, /requestId = requestId \|\| newDecisionRequestID\(\)/);
   assert.match(data, /supabase\.rpc\('admin_book_member_into_class', \{/);
   assert.match(data, /receipt\.request_id !== requestId \|\| receipt\.session_id !== sessionId \|\| receipt\.member_id !== memberId/,
     'an unverifiable receipt must not be reported as a booking');
