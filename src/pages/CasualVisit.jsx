@@ -100,8 +100,13 @@ export default function CasualVisit({ threeDayPass = false, threeMonth = false }
 
   const update = (field, value) => setVisitor(current => ({ ...current, [field]: value }));
   const validation = casualVisitValidationError(visitor);
-  const needsThreeDayQuestionnaire = threeDayPass
-    && (!validQuestionnaireResponseId(questionnaireResponseId) || questionnaire !== 'done');
+  // Saying "I have already completed it" is an answer, not a detour. A repeat
+  // visitor signed weeks ago on a browser that has forgotten the response id,
+  // so requiring one sent them back through the same form every visit. The
+  // server checks the claim against the club's records instead.
+  const threeDayAlreadySigned = threeDayPass && questionnaire === 'done'
+    && !validQuestionnaireResponseId(questionnaireResponseId);
+  const needsThreeDayQuestionnaire = threeDayPass && questionnaire !== 'done';
   const membershipPaperwork = membershipPaperworkStatus(
     visitor, membershipQuestionnaire, membershipAgreement,
   );
@@ -151,7 +156,12 @@ export default function CasualVisit({ threeDayPass = false, threeMonth = false }
             }),
           }
           : threeDayPass
-            ? { action: THREE_DAY_PASS_ACTION, ...visitor, questionnaire_response_id: questionnaireResponseId }
+            ? {
+              action: THREE_DAY_PASS_ACTION, ...visitor,
+              ...(threeDayAlreadySigned
+                ? { already_signed: true }
+                : { questionnaire_response_id: questionnaireResponseId }),
+            }
             : { action: CASUAL_VISIT_ACTION, ...visitor }),
       });
       const body = await response.json().catch(() => ({}));
@@ -288,7 +298,7 @@ export default function CasualVisit({ threeDayPass = false, threeMonth = false }
                 <fieldset className="min-w-0 border border-xert-steel/20 p-4">
                   <legend className="px-2 font-body text-xs uppercase tracking-wider text-xert-pale/60">Pre-exercise questionnaire</legend>
                   {threeDayPass && <p className="mb-3 font-body text-xs leading-relaxed text-xert-pale/60">
-                    Complete and sign the questionnaire on this device before paying. We check the saved response against your contact details. Your details will carry back here afterwards.
+                    Signed it on an earlier visit? Say so below and pay — we check our records against your email. Otherwise the next button opens it, and your details carry back here afterwards.
                   </p>}
                   <div className="space-y-2" role="radiogroup" aria-label="Pre-exercise questionnaire">
                     {[

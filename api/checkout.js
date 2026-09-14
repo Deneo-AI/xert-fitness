@@ -806,7 +806,12 @@ export async function startThreeDayPassCheckout({ payload, admin, stripe, origin
   if (payload?.action !== THREE_DAY_PASS_ACTION) fail('This visitor pass is not available.', 400);
   let visitor;
   try { visitor = normalizeCasualVisitor(payload); } catch (error) { fail(error.message, 400); }
-  if (!validQuestionnaireResponseId(payload.questionnaire_response_id)) {
+  // Somebody buying a second pass signed the questionnaire weeks ago, on a
+  // browser that has long since forgotten the response id. They tick to say so
+  // and the server looks the record up by email, rather than sending them back
+  // through a form they have already filled in.
+  const declaredSigned = payload.already_signed === true;
+  if (!declaredSigned && !validQuestionnaireResponseId(payload.questionnaire_response_id)) {
     fail('Complete and sign the pre-exercise questionnaire before buying this pass.', 400);
   }
   const [{ data: capability, error: capabilityError }, { data: settings, error: settingsError }] = await Promise.all([
@@ -815,12 +820,32 @@ export async function startThreeDayPassCheckout({ payload, admin, stripe, origin
   ]);
   if (capabilityError || !capability || settingsError || !settings) fail('Three Day Pass payments are unavailable right now.', 503);
   if (settings.casual_payments_enabled === false) fail('Visitor payments are switched off. Please speak to the XERT team.', 503);
-  const { data: signed, error: proofError } = await admin.rpc('xert_visitor_questionnaire_completed', {
-    p_response_id: payload.questionnaire_response_id,
-    p_name: visitor.fullName, p_email: visitor.email, p_phone: visitor.phone,
-  });
-  if (proofError) fail('The questionnaire could not be checked. Please try again.', 503);
-  if (signed !== true) fail('Complete and sign the questionnaire using these same contact details, then return to pay.', 400);
+  // A declared "already signed" never blocks the sale: the payment goes
+  // through either way and the owner alert says plainly what was found, so
+  // staff can ask at the door instead of a visitor being stuck at a payment
+  // screen over a questionnaire filed under a slightly different email.
+  let paperworkVerified = null;
+  if (declaredSigned) {
+    const { data: onFile, error: lookupError } = await admin.rpc('xert_visitor_questionnaire_signed', {
+      p_email: visitor.email,
+    });
+    // PGRST202 is PostgREST saying the function is not there, which happens
+    // only between this deploying and its migration being applied. The club's
+    // policy for an unproven claim is to take the payment and flag it, not to
+    // strand somebody at a payment screen, so that is what a missing lookup
+    // does too. A real database failure still stops.
+    if (lookupError && lookupError.code !== 'PGRST202') {
+      fail('Your questionnaire could not be checked. Please try again.', 503);
+    }
+    paperworkVerified = onFile === true;
+  } else {
+    const { data: signed, error: proofError } = await admin.rpc('xert_visitor_questionnaire_completed', {
+      p_response_id: payload.questionnaire_response_id,
+      p_name: visitor.fullName, p_email: visitor.email, p_phone: visitor.phone,
+    });
+    if (proofError) fail('The questionnaire could not be checked. Please try again.', 503);
+    if (signed !== true) fail('Complete and sign the questionnaire using these same contact details, then return to pay.', 400);
+  }
   // Keep expiry and every other parameter stable for a retry in this minute.
   // Hash the server-built parameters so changed contact details or return URLs
   // cannot reuse a Stripe key with a different request body.
@@ -828,7 +853,8 @@ export async function startThreeDayPassCheckout({ payload, admin, stripe, origin
   const parameters = casualVisitCheckoutParameters({
     visitor, priceCents: visitorPassPricing(THREE_DAY_PASS_ACTION, settings).charge,
     passKind: THREE_DAY_PASS_ACTION,
-    questionnaireResponseId: payload.questionnaire_response_id, now: checkoutMinute,
+    ...(declaredSigned ? { paperworkVerified } : { questionnaireResponseId: payload.questionnaire_response_id }),
+    now: checkoutMinute,
     returnURLs: {
       success: new URL('/3daypass?paid=1', origin).toString(),
       cancel: new URL('/3daypass?cancelled=1', origin).toString(),

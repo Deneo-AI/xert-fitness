@@ -156,14 +156,19 @@ export function visitorPassPricing(passKind, settings = {}) {
 export function casualVisitCheckoutParameters({ visitor, priceCents, currency = 'aud', returnURLs, now = Date.now(), passKind = 'casual', questionnaireResponseId = '', paperworkVerified = null }) {
   const pass = visitorPass(passKind);
   const label = pass.label;
-  if (pass.needsSignedQuestionnaire && !validQuestionnaireResponseId(questionnaireResponseId)) {
+  // Somebody who signed on an earlier visit has no response id to hand: their
+  // browser forgot it long ago. They say so instead, and the server looks the
+  // record up — which is what `paperworkVerified` records the result of. Only
+  // a purchase carrying neither is missing its screening.
+  const declaredSigned = paperworkVerified !== null;
+  if (pass.needsSignedQuestionnaire && !declaredSigned && !validQuestionnaireResponseId(questionnaireResponseId)) {
     throw new Error('Complete and sign the pre-exercise questionnaire before buying this pass.');
   }
   const amount = normalizeCasualVisitPriceCents(priceCents, NaN);
   const passMetadata = {
     xert_amount_cents: String(amount),
     ...(passKind === 'casual' ? {} : { xert_pass_kind: passKind }),
-    ...(pass.needsSignedQuestionnaire ? { questionnaire_response_id: questionnaireResponseId } : {}),
+    ...(pass.needsSignedQuestionnaire && !declaredSigned ? { questionnaire_response_id: questionnaireResponseId } : {}),
     ...(paperworkVerified === null ? {} : { xert_paperwork_verified: paperworkVerified ? 'true' : 'false' }),
   };
   if (!Number.isInteger(amount)) throw new Error('The casual visit price is not set correctly.');
@@ -232,6 +237,11 @@ export function casualVisitPaymentFromCheckout(checkout) {
   // the webhook, so metadata is ours; a session charging anything else did not
   // come from us.
   const approvedAmount = Number.parseInt(String(metadata.xert_amount_cents ?? ''), 10);
+  // As above: a declared "already signed" was checked against the club's own
+  // records before Stripe was ever called, and carries that verdict instead of
+  // a response id.
+  const declaredSigned = metadata.xert_paperwork_verified !== undefined
+    && metadata.xert_paperwork_verified !== '';
   // Stripe's payer email can be edited at Checkout. A pass belongs to the
   // participant our server verified, not to whoever's card was used.
   const participantEmail = clean(metadata.casual_visit_email).toLowerCase();
@@ -239,7 +249,7 @@ export function casualVisitPaymentFromCheckout(checkout) {
     checkout.mode !== 'payment' || !Number.isInteger(approvedAmount)
     || checkout.amount_total !== approvedAmount
     || checkout.currency !== 'aud'
-    || (pass.needsSignedQuestionnaire && !validQuestionnaireResponseId(metadata.questionnaire_response_id))
+    || (pass.needsSignedQuestionnaire && !declaredSigned && !validQuestionnaireResponseId(metadata.questionnaire_response_id))
     || !/^cs_[a-zA-Z0-9_]+$/.test(checkout.id || '')
     || !EMAIL_PATTERN.test(participantEmail) || participantEmail.length > 320
   )) throw new Error(`${pass.label} payment does not match the approved pass or questionnaire.`);
@@ -252,8 +262,7 @@ export function casualVisitPaymentFromCheckout(checkout) {
     ...(passKind === 'casual' ? {} : { pass_kind: passKind }),
     // Only a declared "already signed" carries this, so null means they signed
     // as part of the purchase and there is nothing for staff to check.
-    ...(metadata.xert_paperwork_verified === undefined || metadata.xert_paperwork_verified === ''
-      ? {} : { paperwork_verified: metadata.xert_paperwork_verified === 'true' }),
+    ...(declaredSigned ? { paperwork_verified: metadata.xert_paperwork_verified === 'true' } : {}),
     full_name: fullName.slice(0, 120),
     email,
     phone: normalizeVisitorPhone(metadata.casual_visit_phone || checkout?.customer_details?.phone) || null,

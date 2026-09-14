@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import * as visits from '../src/lib/casualVisit.js';
 import * as checkout from '../api/checkout.js';
@@ -89,9 +90,10 @@ test('a different Stripe payer email does not replace the verified three-day par
   assert.equal(payment.pass_kind, 'three_day_pass');
 });
 
-function checkoutDependencies({ proof = true, enabled = true, installed = true } = {}) {
+function checkoutDependencies({ proof = true, onFile = true, enabled = true, installed = true } = {}) {
   const created = [];
   const proofCalls = [];
+  const lookupCalls = [];
   const admin = {
     from(table) {
       const query = {
@@ -105,6 +107,10 @@ function checkoutDependencies({ proof = true, enabled = true, installed = true }
       return query;
     },
     async rpc(name, payload) {
+      if (name === 'xert_visitor_questionnaire_signed') {
+        lookupCalls.push(payload);
+        return { data: onFile, error: null };
+      }
       assert.equal(name, 'xert_visitor_questionnaire_completed');
       proofCalls.push(payload);
       return { data: proof, error: null };
@@ -114,8 +120,89 @@ function checkoutDependencies({ proof = true, enabled = true, installed = true }
     created.push({ parameters, options });
     return { id: 'cs_test_new', url: 'https://checkout.stripe.com/c/pay/cs_test_new' };
   } } } };
-  return { admin, stripe, created, proofCalls };
+  return { admin, stripe, created, proofCalls, lookupCalls };
 }
+
+const declaredRequest = { action: 'three_day_pass', ...visitor, already_signed: true };
+
+test('a repeat visitor who already signed pays without filling the questionnaire in again', async () => {
+  const deps = checkoutDependencies();
+  const result = await checkout.startThreeDayPassCheckout({
+    ...deps, payload: declaredRequest, origin: 'https://xertfitness.com.au', now: 1_800_000_000_000,
+  });
+  // Their browser forgot the response id long ago, so the server looks the
+  // record up by email instead of sending them back through the form.
+  assert.deepEqual(deps.lookupCalls, [{ p_email: visitor.email }]);
+  assert.deepEqual(deps.proofCalls, []);
+  assert.equal(deps.created.length, 1);
+  assert.equal(result.url, 'https://checkout.stripe.com/c/pay/cs_test_new');
+  const { parameters } = deps.created[0];
+  assert.equal(parameters.metadata.xert_paperwork_verified, 'true');
+  assert.equal(parameters.metadata.questionnaire_response_id, undefined);
+});
+
+test('an unverifiable claim still sells the pass and flags it for staff rather than trapping the visitor', async () => {
+  const deps = checkoutDependencies({ onFile: false });
+  await checkout.startThreeDayPassCheckout({
+    ...deps, payload: declaredRequest, origin: 'https://xertfitness.com.au', now: 1_800_000_000_000,
+  });
+  assert.equal(deps.created.length, 1, 'payment must not be blocked on the lookup');
+  assert.equal(deps.created[0].parameters.metadata.xert_paperwork_verified, 'false');
+});
+
+test('a failed paperwork lookup stops before Stripe instead of guessing', async () => {
+  const deps = checkoutDependencies();
+  deps.admin.rpc = async () => ({ data: null, error: { message: 'down' } });
+  await assert.rejects(checkout.startThreeDayPassCheckout({
+    ...deps, payload: declaredRequest, origin: 'https://xertfitness.com.au',
+  }));
+  assert.equal(deps.created.length, 0);
+});
+
+test('a lookup that is not deployed yet flags the sale instead of refusing it', async () => {
+  const deps = checkoutDependencies();
+  deps.admin.rpc = async () => ({ data: null, error: { code: 'PGRST202', message: 'function not found' } });
+  await checkout.startThreeDayPassCheckout({
+    ...deps, payload: declaredRequest, origin: 'https://xertfitness.com.au', now: 1_800_000_000_000,
+  });
+  assert.equal(deps.created.length, 1);
+  assert.equal(deps.created[0].parameters.metadata.xert_paperwork_verified, 'false');
+});
+
+test('a declared claim is recorded on the paid pass, and only a real one is trusted', () => {
+  const declared = { ...paidSession().metadata, xert_paperwork_verified: 'false' };
+  delete declared.questionnaire_response_id;
+  const row = visits.casualVisitPaymentFromCheckout(paidSession({ metadata: declared }));
+  assert.equal(row.pass_kind, 'three_day_pass');
+  assert.equal(row.paperwork_verified, false);
+  assert.equal(visits.casualVisitPaymentFromCheckout(
+    paidSession({ metadata: { ...declared, xert_paperwork_verified: 'true' } }),
+  ).paperwork_verified, true);
+  // A pass carrying neither a response id nor a checked claim is still refused.
+  const unscreened = { ...declared };
+  delete unscreened.xert_paperwork_verified;
+  assert.throws(() => visits.casualVisitPaymentFromCheckout(paidSession({ metadata: unscreened })),
+    /questionnaire/i);
+});
+
+test('the three-day page treats "already completed" as an answer, not a detour', () => {
+  const page = readFileSync(new URL('../src/pages/CasualVisit.jsx', import.meta.url), 'utf8');
+  // The old rule demanded a response id from this browsing session, so a
+  // returning visitor was sent back through a form they had already signed.
+  assert.match(page, /const needsThreeDayQuestionnaire = threeDayPass && questionnaire !== 'done';/);
+  assert.match(page, /threeDayAlreadySigned[\s\S]*?already_signed: true/);
+});
+
+test('the paperwork lookup ships as a service-only migration with signature evidence', () => {
+  const sql = readFileSync(
+    new URL('../supabase/migrations/20260914020000_visitor_pass_already_signed.sql', import.meta.url), 'utf8');
+  assert.match(sql, /create or replace function public\.xert_visitor_questionnaire_signed\(p_email text\)/);
+  assert.match(sql, /revoke all on function public\.xert_visitor_questionnaire_signed\(text\) from public, anon, authenticated/);
+  assert.match(sql, /grant execute on function public\.xert_visitor_questionnaire_signed\(text\) to service_role/);
+  // An existing row is not enough: it has to carry a real signature.
+  assert.match(sql, /xert_valid_form_signature/);
+  assert.match(sql, /set search_path = ''/);
+});
 
 test('the server checks exact signed questionnaire proof before creating an anonymous pass checkout', async () => {
   assert.equal(typeof checkout.startThreeDayPassCheckout, 'function');
