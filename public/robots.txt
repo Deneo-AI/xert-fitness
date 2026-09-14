@@ -5,4 +5,4 @@ Disallow: /admin
 Disallow: /checkout-return
 Disallow: /reset-password
 
-Sitemap: https://xert-fitness.vercel.app/sitemap.xml
+Sitemap: https://xertfitness.com.au/sitemap.xml

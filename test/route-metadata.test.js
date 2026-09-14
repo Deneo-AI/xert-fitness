@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { metadataForPath } from '../src/lib/pageMetadata.js';
+import { metadataForPath, SITE_ORIGIN } from '../src/lib/pageMetadata.js';
 
 test('public routes have distinct indexable search metadata', () => {
   const home = metadataForPath('/');
@@ -27,9 +27,9 @@ test('sitemap contains indexable routes and excludes private screens', async () 
   const robots = await readFile(new URL('../public/robots.txt', import.meta.url), 'utf8');
 
   for (const path of ['/events', '/booking', '/training-guide', '/privacy']) {
-    assert.match(sitemap, new RegExp(`<loc>https://xert-fitness\\.vercel\\.app${path}</loc>`));
+    assert.ok(sitemap.includes(`<loc>${SITE_ORIGIN}${path}</loc>`), path);
   }
   assert.doesNotMatch(sitemap, /\/admin|\/account|\/checkout-return/);
   assert.match(robots, /Disallow: \/admin/);
-  assert.match(robots, /Sitemap: https:\/\/xert-fitness\.vercel\.app\/sitemap\.xml/);
+  assert.ok(robots.includes(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`));
 });

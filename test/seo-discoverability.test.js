@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
-import { metadataForPath, SOCIAL_IMAGE } from '../src/lib/pageMetadata.js';
+import { metadataForPath, SITE_ORIGIN, SOCIAL_IMAGE } from '../src/lib/pageMetadata.js';
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
-const ORIGIN = 'https://xert-fitness.vercel.app';
+// Every public tag has to name the club's own domain. A tag naming the
+// deployment host previews — and opens — on the wrong address.
+const ORIGIN = SITE_ORIGIN;
 
 // Minimal JPEG dimension parser: walk markers to the start-of-frame segment.
 function jpegDimensions(buf) {

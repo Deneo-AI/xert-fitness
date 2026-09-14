@@ -1,5 +1,10 @@
 export const SITE_NAME = 'XERT Fitness';
 
+// The address people actually visit. Every public tag — canonical, og:url, the
+// sitemap — has to agree on it, or a shared link previews as, and opens on, the
+// deployment host instead of the club's own domain.
+export const SITE_ORIGIN = 'https://xertfitness.com.au';
+
 // Site-wide social-preview image for og:image / twitter:image: a purpose-built
 // 1200x630 card (navy blueprint backdrop + wordmark) at the exact ratio social
 // platforms crop to, saved as an opaque JPEG so it composites predictably.
@@ -13,7 +18,7 @@ export const SOCIAL_IMAGE = Object.freeze({
 const HOME_TITLE = 'XERT Fitness | Functional Training Kingaroy';
 const HOME_DESCRIPTION = 'Structured, coach-led functional fitness, personal training and event preparation in Kingaroy, Queensland.';
 
-const PUBLIC_METADATA = Object.freeze({
+export const PUBLIC_METADATA = Object.freeze({
   '/': { title: HOME_TITLE, description: HOME_DESCRIPTION },
   '/about': { title: 'About XERT Fitness | Kingaroy', description: 'Meet the purpose, coaching model and training philosophy behind XERT Fitness in Kingaroy.' },
   '/coaches': { title: 'Coaches and Practitioners | XERT Fitness', description: 'Meet the coaches and allied health practitioners supporting XERT Fitness members.' },
