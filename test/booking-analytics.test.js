@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  BOOKING_RELEASE_ACTIONS,
   bookingActionKey,
+  bookingReleaseCopy,
   bulkBookingStatusOptions,
   bookingSelectionKey,
   classCapacityLine,
@@ -140,4 +143,52 @@ test('each row is disabled on its own, not the whole queue', () => {
   assert.equal(bookingActionKey({ source: 'member', id: 'a' }), 'member-a');
   assert.equal(bookingActionKey({ source: 'enquiry', id: 'a' }), 'enquiry-a');
   assert.notEqual(bookingActionKey({ source: 'member', id: 'a' }), bookingActionKey({ source: 'enquiry', id: 'a' }));
+});
+
+test('a confirmed booking can be taken off a class that has not run yet', () => {
+  // Sign-ups confirm themselves now, so there is nothing to approve — but a
+  // confirmed booking offered nothing at all until the class started, so staff
+  // could not change their mind or free the place for anyone else.
+  assert.deepEqual(
+    BOOKING_RELEASE_ACTIONS.map(action => action.status),
+    ['waitlisted', 'cancelled', 'declined'],
+  );
+  for (const action of BOOKING_RELEASE_ACTIONS) {
+    assert.ok(action.label, `${action.status} needs a label staff can read`);
+  }
+});
+
+test('every release says who, which class, and that the place goes back on offer', () => {
+  const booking = { full_name: 'Rachel Ogden', session: { title: '5:15am Training Session' } };
+  for (const action of BOOKING_RELEASE_ACTIONS) {
+    const copy = bookingReleaseCopy(action.status, booking);
+    assert.ok(copy, action.status);
+    assert.match(copy.description, /Rachel Ogden/);
+    assert.match(copy.description, /5:15am Training Session/);
+    // Freeing somebody's place is not a mis-tap sort of action, so the
+    // consequence has to be on screen before it happens.
+    assert.match(copy.warning, /place goes back on offer/);
+    assert.ok(copy.title && copy.confirmLabel);
+  }
+});
+
+test('a release with nothing to name still reads as a sentence', () => {
+  const copy = bookingReleaseCopy('cancelled', {});
+  assert.match(copy.description, /^This person will no longer be in this class\.$/);
+});
+
+test('only the three release statuses have copy', () => {
+  for (const status of ['confirmed', 'attended', 'requested', '', null]) {
+    assert.equal(bookingReleaseCopy(status, {}), null, String(status));
+  }
+});
+
+test('the requests queue confirms a release before freeing the place', () => {
+  const table = readFileSync(
+    new URL('../src/components/admin/BookingRequestsTable.jsx', import.meta.url), 'utf8');
+  // The buttons must open the dialog, never update straight away.
+  assert.match(table, /onClick=\{\(\) => setRelease\(\{ booking: b, status: action\.status \}\)\}/);
+  assert.match(table, /BOOKING_RELEASE_ACTIONS\.map/);
+  assert.match(table, /b\.status === 'confirmed' && !classHasStarted\(b\)/);
+  assert.match(table, /if \(pending\) void handleStatusUpdate\(pending\.booking, pending\.status\)/);
 });

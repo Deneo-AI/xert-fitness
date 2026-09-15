@@ -10,7 +10,7 @@ import { gymDateTimeLabel } from '@/lib/gymTime';
 import AdminLoadError from '@/components/admin/AdminLoadError';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
 import { downloadCsv } from '@/lib/csv';
-import { bookingActionKey, bookingCsvRows, bookingSelectionKey, classCapacityLine, bulkBookingStatusOptions, classHasStarted, filterAdminBookings, hiddenBookingCount, selectedBookingKeys, summarizeAdminBookings } from '@/lib/bookingAnalytics';
+import { BOOKING_RELEASE_ACTIONS, bookingActionKey, bookingCsvRows, bookingReleaseCopy, bookingSelectionKey, classCapacityLine, bulkBookingStatusOptions, classHasStarted, filterAdminBookings, hiddenBookingCount, selectedBookingKeys, summarizeAdminBookings } from '@/lib/bookingAnalytics';
 import { adminBulkConfirmation, settleAdminMutations } from '@/lib/adminBulk';
 import { ADMIN_BUTTON, ADMIN_PAGE, ADMIN_TEXT } from '@/components/admin/ui';
 
@@ -45,6 +45,7 @@ export default function BookingRequestsTable() {
   const [page, setPage] = useState(1);
   const [capacityById, setCapacityById] = useState({});
   const [overbook, setOverbook] = useState(null);
+  const [release, setRelease] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,6 +104,8 @@ export default function BookingRequestsTable() {
   const allVisibleSelected = visibleBookings.length > 0 && visibleBookings.every(booking => selectedKeys.has(bookingSelectionKey(booking)));
   const selectedBookings = useMemo(() => bookings.filter(booking => selectedKeys.has(bookingSelectionKey(booking))), [bookings, selectedKeys]);
   const bulkStatusOptions = useMemo(() => bulkBookingStatusOptions(selectedBookings), [selectedBookings]);
+  const releaseCopy = useMemo(
+    () => (release ? bookingReleaseCopy(release.status, release.booking) : null), [release]);
   const bulkConfirmation = useMemo(() => {
     if (!bulkStatus || selectedBookings.length === 0) return null;
     const warning = bulkStatus === 'cancelled'
@@ -395,10 +398,23 @@ export default function BookingRequestsTable() {
                       </button>
                     </>
                   )}
+                  {/* Sign-ups confirm themselves now, so there is nothing here
+                      to approve — but a confirmed booking used to offer nothing
+                      at all until the class started, and staff could not change
+                      their mind, free a place or take somebody off. */}
                   {b.status === 'confirmed' && !classHasStarted(b) && (
-                    <span className="self-center font-body text-[11px] text-xert-concrete/35">
-                      Roll call opens when the class starts
-                    </span>
+                    <>
+                      <span className="self-center font-body text-[11px] text-xert-concrete/35">
+                        Roll call opens when the class starts
+                      </span>
+                      {BOOKING_RELEASE_ACTIONS.map(action => (
+                        <button key={action.status} disabled={updatingKey === bookingActionKey(b)}
+                          onClick={() => setRelease({ booking: b, status: action.status })}
+                          className="min-h-11 px-3 py-2.5 border border-xert-steel/30 font-body text-xs text-xert-concrete/50 hover:border-xert-steel hover:text-xert-pale transition-colors">
+                          {action.label}
+                        </button>
+                      ))}
+                    </>
                   )}
                   {b.status === 'waitlisted' && (
                     <>
@@ -488,6 +504,20 @@ export default function BookingRequestsTable() {
           const pending = overbook;
           setOverbook(null);
           if (pending) void handleStatusUpdate(pending.booking, pending.status, { allowOverbook: true });
+        }}
+        busy={Boolean(updatingKey)}
+      />
+      <AdminConfirmDialog
+        open={Boolean(release)}
+        onOpenChange={open => { if (!open) setRelease(null); }}
+        title={releaseCopy?.title || ''}
+        description={releaseCopy?.description || ''}
+        warning={releaseCopy?.warning}
+        confirmLabel={releaseCopy?.confirmLabel || 'Apply'}
+        onConfirm={() => {
+          const pending = release;
+          setRelease(null);
+          if (pending) void handleStatusUpdate(pending.booking, pending.status);
         }}
         busy={Boolean(updatingKey)}
       />

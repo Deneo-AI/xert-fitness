@@ -3,7 +3,11 @@ export const SITE_NAME = 'XERT Fitness';
 // The address people actually visit. Every public tag — canonical, og:url, the
 // sitemap — has to agree on it, or a shared link previews as, and opens on, the
 // deployment host instead of the club's own domain.
-export const SITE_ORIGIN = 'https://xertfitness.com.au';
+//
+// With the www, because that is where the site actually answers: the bare
+// domain 308-redirects to it, and a canonical pointing at a redirect makes
+// search engines and scrapers take an extra hop to work out the real page.
+export const SITE_ORIGIN = 'https://www.xertfitness.com.au';
 
 // Site-wide social-preview image for og:image / twitter:image: a purpose-built
 // 1200x630 card (navy blueprint backdrop + wordmark) at the exact ratio social

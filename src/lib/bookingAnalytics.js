@@ -172,3 +172,48 @@ export function bookingCsvRows(bookings) {
     staff_note: booking.admin_notes || '',
   }));
 }
+
+/**
+ * Taking somebody out of a class that has not run yet.
+ *
+ * Sign-ups are confirmed the moment they are made, so by the time staff look
+ * at the queue there is nothing left to approve — what they need is a way to
+ * change their mind. Until now a confirmed booking offered nothing at all
+ * until the class started, so the only way to free a place was to wait.
+ *
+ * Every one of these frees the person's place for someone else, which is not
+ * something to do on a mis-tap, so each is confirmed first in the person's own
+ * words rather than the database's.
+ */
+export const BOOKING_RELEASE_ACTIONS = Object.freeze([
+  Object.freeze({ status: 'waitlisted', label: 'Waitlist' }),
+  Object.freeze({ status: 'cancelled', label: 'Cancel' }),
+  Object.freeze({ status: 'declined', label: 'Decline' }),
+]);
+
+export function bookingReleaseCopy(status, booking) {
+  const who = booking?.full_name || 'This person';
+  const where = booking?.session?.title || 'this class';
+  const copy = {
+    waitlisted: {
+      title: 'Move them to the waitlist',
+      description: `${who} keeps their details but loses their place in ${where}.`,
+      confirmLabel: 'Move to waitlist',
+    },
+    cancelled: {
+      title: 'Cancel this booking',
+      description: `${who} will no longer be in ${where}.`,
+      confirmLabel: 'Cancel the booking',
+    },
+    declined: {
+      title: 'Decline this booking',
+      description: `${who} will no longer be in ${where}.`,
+      confirmLabel: 'Decline the booking',
+    },
+  }[status];
+  if (!copy) return null;
+  return {
+    ...copy,
+    warning: 'Their place goes back on offer straight away, and they are told the booking changed.',
+  };
+}

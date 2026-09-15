@@ -59,10 +59,16 @@ test('the build prerenders previews before the precache manifest is written', ()
     < build.indexOf('inject-pwa-precache'), 'prerender must run before precache injection');
 });
 
-test('no public tag points at the deployment host', () => {
+test('no public tag points at the deployment host or at a redirect', () => {
   for (const file of ['../index.html', '../public/sitemap.xml', '../public/robots.txt']) {
-    assert.ok(!read(file).includes('xert-fitness.vercel.app'),
+    const source = read(file);
+    assert.ok(!source.includes('xert-fitness.vercel.app'),
       `${file} still advertises the Vercel host, so shared links preview and open there`);
-    assert.ok(read(file).includes('xertfitness.com.au'), `${file} should name the club's domain`);
+    assert.ok(source.includes(SITE_ORIGIN), `${file} should name the club's domain`);
+    // The bare domain 308-redirects to the www host, so a tag naming it costs
+    // every scraper and crawler an extra hop to reach the real page.
+    assert.ok(!/https:\/\/xertfitness\.com\.au/.test(source),
+      `${file} names the bare domain, which only redirects`);
   }
+  assert.equal(SITE_ORIGIN, 'https://www.xertfitness.com.au');
 });
