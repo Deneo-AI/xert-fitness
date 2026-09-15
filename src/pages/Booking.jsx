@@ -1,21 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Check, Loader2, RefreshCw, Ticket, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Loader2, RefreshCw, Users } from 'lucide-react';
 import PublicNav from '@/components/public/PublicNav';
 import PublicFooter from '@/components/public/PublicFooter';
 import PageHeader from '@/components/public/PageHeader';
 import Skeleton from '@/components/public/Skeleton';
 import { useSupabaseAuth } from '@/lib/SupabaseAuthContext';
-import {
-  getProducts, getSessionPackPaymentAvailability, startCheckout, getAvailableSessions, bookSession, joinSessionWaitlist, getMyBookings, getMyCredits,
+import { getAvailableSessions, bookSession, joinSessionWaitlist, getMyBookings,
 } from '@/lib/bookingData';
 import { useToast } from '@/components/ui/use-toast';
 import { useSiteContent } from '@/lib/siteContent';
 import { getSoftLaunchSettings } from '@/lib/adminData';
-import { pricesComingSoon } from '@/lib/launchSettings';
 import { PLATFORM_PROVIDERS, resolvePlatformProvider } from '@/lib/platformProvider';
 import { BOOKING_DEFAULTS } from '@/lib/contentDefaults';
-import { formatPackPrice, formatPackValidity, packCta, PRICES_COMING_SOON_LABEL } from '@/lib/products';
 import { activeBookingsBySession, bookingTimeConflict, classActionLabel, classIsClosedToBooking } from '@/lib/bookingUi';
 import { clearPendingWebCheckout } from '@/lib/webCheckoutRecovery';
 
@@ -57,18 +54,11 @@ export default function Booking() {
   const [searchParams, setSearchParams] = useSearchParams();
   const pageContent = useSiteContent('booking', BOOKING_DEFAULTS);
 
-  const [products, setProducts] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
-  const [credits, setCredits] = useState(null);
-  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
-  // Default to hidden: prices stay "Coming soon" until settings confirm otherwise.
-  const [comingSoon, setComingSoon] = useState(true);
   // Missing settings are not permission to expose either booking engine.
   const [provider, setProvider] = useState(() => resolvePlatformProvider(null));
-  const [paymentAvailabilityLoaded, setPaymentAvailabilityLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [buyingSlug, setBuyingSlug] = useState(null);
   const [bookingId, setBookingId] = useState(null);
   const [loadErrors, setLoadErrors] = useState([]);
   const requestedSession = searchParams.get('session');
@@ -90,8 +80,8 @@ export default function Booking() {
     // A refresh invalidates the previous provider decision until the current
     // singleton settings row has been verified again.
     setProvider(resolvePlatformProvider(null));
-    const requests = [getProducts(), getAvailableSessions(), getSessionPackPaymentAvailability(), getSoftLaunchSettings()];
-    if (session) requests.push(getMyCredits(), getMyBookings());
+    const requests = [getAvailableSessions(), getSoftLaunchSettings()];
+    if (session) requests.push(getMyBookings());
     const results = await Promise.allSettled(requests);
     const errors = [];
     const apply = (result, label, setter, fallback) => {
@@ -101,22 +91,11 @@ export default function Booking() {
         errors.push(`${label}: ${result.reason?.message || 'unavailable'}`);
       }
     };
-    apply(results[0], 'Session packs', setProducts, []);
-    apply(results[1], 'Timetable', setSessions, []);
-    apply(results[2], 'Pack checkout', setPaymentsEnabled, false);
+    apply(results[0], 'Timetable', setSessions, []);
     // On failure the fallback keeps pricing hidden rather than leaking amounts.
-    apply(results[3], 'Launch settings', s => {
-      setComingSoon(pricesComingSoon(s));
-      setProvider(resolvePlatformProvider(s));
-    }, null);
-    setPaymentAvailabilityLoaded(true);
-    if (session) {
-      apply(results[4], 'Credits', setCredits, null);
-      apply(results[5], 'Your bookings', setMyBookings, []);
-    } else {
-      setCredits(null);
-      setMyBookings([]);
-    }
+    apply(results[1], 'Launch settings', s => setProvider(resolvePlatformProvider(s)), null);
+    if (session) apply(results[2], 'Your bookings', setMyBookings, []);
+    else setMyBookings([]);
     setLoadErrors(errors);
     setLoading(false);
     if (errors.length) {
@@ -191,40 +170,6 @@ export default function Booking() {
     toast,
   ]);
 
-  const handleBuy = async (product) => {
-    if (!nativeOperations || !provider.capabilities.canPurchaseInternalPack) {
-      toast({
-        title: fitboxActive ? 'Purchases are managed in FitBox' : 'Booking provider unavailable',
-        description: fitboxActive
-          ? 'Open the FitBox member portal to manage membership and payments.'
-          : provider.blockedReason || 'Refresh before purchasing a session pack.',
-      });
-      return;
-    }
-    // Never sell a pack whose price the site is hiding: while "prices coming
-    // soon" is on, checkout stays closed even if payments are switched on.
-    if (comingSoon) {
-      toast({ title: 'Pricing coming soon', description: 'Pack prices are being finalised. Register your interest and we will let you know the moment they are live.' });
-      return;
-    }
-    if (!paymentsEnabled) {
-      toast({ title: 'Pack purchases are paused', description: 'XERT will reopen secure checkout when the next release checks are complete.' });
-      return;
-    }
-    if (!session) {
-      toast({ title: 'Create an account first', description: 'Sign in or register to purchase a pack — your credits are stored on your account.' });
-      navigate('/register');
-      return;
-    }
-    setBuyingSlug(product.slug);
-    try {
-      await startCheckout(product.slug); // redirects on success
-    } catch (e) {
-      toast({ title: 'Checkout unavailable', description: e.message, variant: 'destructive' });
-      setBuyingSlug(null);
-    }
-  };
-
   const handleBook = async (s) => {
     if (!nativeOperations || !provider.capabilities.canBookInternally) {
       toast({
@@ -236,7 +181,7 @@ export default function Booking() {
       return;
     }
     if (!session) {
-      toast({ title: 'Sign in to book', description: 'Create a free account, grab a pack, and book in seconds.' });
+      toast({ title: 'Sign in to book', description: 'Create a free account and book in seconds.' });
       navigate('/login');
       return;
     }
@@ -330,118 +275,19 @@ export default function Booking() {
 
           {nativeOperations && (
             <>
-          {/* Credits banner for signed-in members */}
-          {session && credits?.total > 0 && (
-            <div className="xert-card-accent flex flex-wrap items-center gap-3 p-4 sm:p-5 mt-8">
-              <span className="xert-icon-tile"><Ticket className="w-5 h-5" /></span>
-              <p className="min-w-[12rem] flex-1 font-body text-sm text-xert-pale">
-                You still have <strong>{credits.total}</strong> class credit{credits.total === 1 ? '' : 's'} from a pack — pick a class below.
-              </p>
-              <Link to="/account" className="xert-chip ml-auto min-h-11 shrink-0 hover:border-xert-steel transition-colors">
-                My Account
-              </Link>
-            </div>
-          )}
-
-          {/* Packs */}
-          <section id="packs" className="mt-12">
-            {paymentAvailabilityLoaded && !paymentsEnabled && (
-              <div role="status" className="xert-card-flat mb-4 flex items-start gap-3 p-4 sm:p-5">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-xert-steel" />
-                <div>
-                  <p className="font-display text-sm uppercase text-xert-offwhite">Pack purchases are paused</p>
-                  <p className="mt-1 font-body text-xs leading-relaxed text-xert-pale/60">You can still explore packs and the timetable. Secure checkout will reopen after XERT completes its payment launch checks.</p>
-                </div>
-              </div>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {(loading && products.length === 0 ? [] : products).map(pack => (
-                <article key={pack.id} className={`${pack.featured ? 'xert-card-accent' : 'xert-card'} relative p-6 flex flex-col`}>
-                  {pack.featured && (
-                    <span className="xert-chip xert-chip-solid absolute top-4 right-4">
-                      Most Popular
-                    </span>
-                  )}
-                  <div className="xert-icon-tile mb-5" style={pack.featured ? { backgroundColor: 'var(--accent-default)', color: 'var(--surface-base)' } : undefined}>
-                    <Ticket className="w-5 h-5" />
-                  </div>
-                  <h2 className="font-display text-3xl uppercase text-xert-offwhite leading-none mb-2">{pack.name}</h2>
-                  {comingSoon ? (
-                    <p className="font-display text-2xl uppercase mb-2" style={{ color: 'var(--accent-default)' }}>
-                      {PRICES_COMING_SOON_LABEL}
-                    </p>
-                  ) : (
-                    <p className="font-display text-4xl uppercase mb-2" style={{ color: 'var(--accent-default)' }}>
-                      {formatPackPrice(pack.price_cents, pack.currency)}
-                    </p>
-                  )}
-                  <p className="font-body text-xs uppercase tracking-wider mb-5" style={{ color: 'var(--text-secondary-45)' }}>
-                    {formatPackValidity(pack.validity_days)}
-                  </p>
-                  {pack.description && (
-                    <p className="font-body text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary-68)' }}>
-                      {pack.description}
-                    </p>
-                  )}
-                  <div className="space-y-3 mb-6 flex-1">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-default)' }} />
-                      <p className="font-body text-sm" style={{ color: 'var(--text-secondary-62)' }}>
-                        {pack.sessions_count} coached session{pack.sessions_count === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-default)' }} />
-                      <p className="font-body text-sm" style={{ color: 'var(--text-secondary-62)' }}>
-                        Semi-private coaching environment
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-default)' }} />
-                      <p className="font-body text-sm" style={{ color: 'var(--text-secondary-62)' }}>
-                        Flexible online booking
-                      </p>
-                    </div>
-                  </div>
-                  {comingSoon ? (
-                    <Link
-                      to="/contact"
-                      className={`${pack.featured ? 'xert-btn-primary' : 'xert-btn-ghost'} inline-flex min-h-[52px] w-full items-center justify-center gap-2 px-5 font-display text-base uppercase tracking-wide`}>
-                      Register Your Interest<ArrowRight className="w-4 h-4" />
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => handleBuy(pack)}
-                      disabled={!paymentsEnabled || buyingSlug === pack.slug}
-                      className={`${pack.featured ? 'xert-btn-primary' : 'xert-btn-ghost'} inline-flex min-h-[52px] w-full items-center justify-center gap-2 px-5 font-display text-base uppercase tracking-wide disabled:opacity-60`}>
-                      {!paymentsEnabled
-                        ? 'Purchases Paused'
-                        : buyingSlug === pack.slug
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <>{packCta(pack.slug)}<ArrowRight className="w-4 h-4" /></>}
-                    </button>
-                  )}
-                </article>
-              ))}
-            </div>
-            {loading && products.length === 0 && (
-              <div role="status" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <span className="sr-only">Loading session packs…</span>
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="xert-card p-6">
-                    <Skeleton className="w-11 h-11 mb-5" />
-                    <Skeleton className="h-8 w-2/3 mb-3" />
-                    <Skeleton className="h-10 w-1/2 mb-5" />
-                    <div className="space-y-3 mb-6">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-5/6" />
-                      <Skeleton className="h-4 w-4/6" />
-                    </div>
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* This page used to be the session-pack shop: buy credits here, then
+              spend them on a class below. Packs are retired, so what is left is
+              the timetable — and a pointer to where paying actually happens. */}
+          <section id="packs" className="xert-card-flat mt-12 p-5 text-center sm:p-6">
+            <p className="mb-4 font-body text-sm leading-relaxed text-xert-pale/70">
+              Not a member yet? Weekly membership, a casual visit, a Three Day Pass or three months
+              upfront — every price and how to start.
+            </p>
+            <Link to="/memberships"
+              className="xert-btn-primary inline-flex min-h-[52px] items-center justify-center gap-2 px-6 font-display text-base uppercase tracking-wide">
+              Memberships &amp; Passes
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </section>
 
           {/* Timetable */}
@@ -482,8 +328,8 @@ export default function Booking() {
                 <Users className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--accent-default-40)' }} />
                 <p className="font-display text-2xl uppercase text-xert-offwhite">Timetable opening soon.</p>
                 <p className="font-body text-sm mt-2 max-w-md mx-auto" style={{ color: 'var(--text-secondary-55)' }}>
-                  Classes for the launch block are being scheduled. Grab a pack now and you&rsquo;ll be ready to book
-                  the moment they go live.
+                  Classes for the launch block are being scheduled. Check back shortly, or register
+                  your interest and XERT will let you know the moment they go live.
                 </p>
               </div>
             ) : (

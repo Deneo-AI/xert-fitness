@@ -111,7 +111,7 @@ function useMirror(loader, deps) {
     } catch (error) {
       setState(current => ({ ...current, loading: false, error: error.message || 'FitBox data could not be loaded.' }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, deps);
   useEffect(() => { void reload(); }, [reload]);
   // Returned as a named pair rather than a two-element array: an array of two

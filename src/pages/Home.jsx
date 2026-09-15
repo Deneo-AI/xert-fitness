@@ -8,7 +8,7 @@ import TrainingStyle from '@/components/public/TrainingStyle';
 import AudienceRows from '@/components/public/AudienceRows';
 import FacilitySection from '@/components/public/FacilitySection';
 import FounderSection from '@/components/public/FounderSection';
-import SessionPacks from '@/components/public/SessionPacks';
+import HowToTrain from '@/components/public/HowToTrain';
 import EoiSelector from '@/components/public/EoiSelector';
 import FAQ from '@/components/public/FAQ';
 import PublicFooter from '@/components/public/PublicFooter';
@@ -68,7 +68,7 @@ export default function Home() {
         <Marquee />
 
         <Reveal><FounderSection /></Reveal>
-        <Reveal><SessionPacks /></Reveal>
+        <Reveal><HowToTrain /></Reveal>
         <Reveal><EoiSelector /></Reveal>
 
         {/* Final CTA */}
@@ -81,7 +81,7 @@ export default function Home() {
                 Book your first session.
               </h2>
               <p className="mx-auto mb-8 max-w-[40ch] font-body text-base leading-relaxed text-xert-pale/65">
-                Contact XERT to learn more about the coaching system, class packs and the training block that fits your next goal.
+                Contact XERT to learn more about the coaching system, memberships and the training block that fits your next goal.
               </p>
               <a href="/booking"
                 className="xert-btn-primary inline-flex min-h-[52px] w-full items-center justify-center px-8 py-4 font-display text-lg uppercase sm:w-auto">

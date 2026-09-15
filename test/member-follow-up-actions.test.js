@@ -15,27 +15,43 @@ const member = {
 
 test('follow-up copy is personalized, actionable and URL encoded', () => {
   const copy = createFollowUpCopy(member, 'https://xertfitness.com.au/admin');
-  assert.equal(copy.subject, 'Use your XERT credits before they expire');
+  assert.equal(copy.subject, 'Ready for your next XERT class?');
   assert.match(copy.emailBody, /^Hi Dene,/);
-  assert.match(copy.emailBody, /2 class credits expiring on 18 July/);
   assert.match(copy.emailBody, /https:\/\/xertfitness\.com\.au\/booking/);
   assert.match(copy.mailto, /^mailto:dene%40example\.com\?subject=/);
   assert.doesNotMatch(copy.mailto, /\s/);
 });
 
+test('nobody is chased about a balance they can no longer spend', () => {
+  // Class credits are retired: nothing redeems one, so an email counting
+  // somebody's expiring credits sends them to a door that will not open.
+  for (const reason of ['credits_expiring', 'idle_credits']) {
+    const copy = createFollowUpCopy({ ...member, reason }, 'https://xertfitness.com.au');
+    for (const text of [copy.subject, copy.emailBody]) {
+      assert.doesNotMatch(text, /credit/i, `${reason}: ${text}`);
+      assert.doesNotMatch(text, /session pack/i, `${reason}: ${text}`);
+    }
+  }
+});
+
 test('follow-up copy covers each operational queue reason', () => {
-  const reasons = ['no_first_booking', 'credits_expiring', 'idle_credits', 'renewal_due'];
+  const reasons = [
+    'no_first_booking', 'credits_expiring', 'idle_credits', 'renewal_due',
+    'no_training_access',
+  ];
   for (const reason of reasons) {
     const copy = createFollowUpCopy({ ...member, reason }, 'https://xertfitness.com.au');
     assert.ok(copy.subject.length > 10);
-    assert.match(copy.emailBody, /\/booking/);
+    // Every message still hands them somewhere to go: the timetable to book,
+    // or the memberships page to start paying.
+    assert.match(copy.emailBody, /\/booking|\/memberships/, reason);
   }
 });
 
 test('follow-up logs normalize channel and optional context', () => {
   assert.equal(
     createFollowUpLog(member, 'sms', '  Asked to call back tomorrow.  '),
-    'Contacted via SMS about expiring class credits. Asked to call back tomorrow.'
+    'Contacted via SMS about booking their next class. Asked to call back tomorrow.'
   );
   assert.equal(
     createFollowUpLog({ reason: 'renewal_due' }, 'in_person'),

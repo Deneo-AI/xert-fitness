@@ -13,8 +13,8 @@ const FEATURES = [
   },
   {
     icon: CreditCard,
-    title: 'Session Credits',
-    copy: 'See your session pack balance at a glance and know exactly what every booking uses before you confirm.',
+    title: 'Your Membership',
+    copy: 'See where your membership stands, what you have booked and what is coming up, before you confirm anything.',
   },
   {
     icon: Target,
@@ -49,7 +49,7 @@ export default function AppLanding() {
           eyebrow="iOS App"
           title="XERT In Your"
           accent="Pocket"
-          intro="The XERT Fitness app for iPhone puts your bookings, session credits, training goals and event calendar in one place — built dark, sharp and fast, just like the gym."
+          intro="The XERT Fitness app for iPhone puts your bookings, membership, training goals and event calendar in one place — built dark, sharp and fast, just like the gym."
           containerClassName="max-w-5xl"
         />
 

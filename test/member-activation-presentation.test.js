@@ -73,9 +73,11 @@ test('activation outreach copy sends each member to the correct next step', () =
   const attendance = createFollowUpCopy({ full_name: 'Alex', reason: 'no_first_attendance' }, 'https://xert.example');
 
   assert.match(readiness.emailBody, /account#member-readiness/);
-  assert.match(access.emailBody, /session pack/i);
+  // Packs are retired; the next step is choosing a membership or a pass.
+  assert.match(access.emailBody, /membership or pass/i);
+  assert.doesNotMatch(access.emailBody, /session pack|credit/i);
   assert.match(attendance.emailBody, /first XERT class/i);
-  assert.match(createFollowUpLog({ reason: 'no_training_access' }, 'email'), /session-pack access/);
+  assert.match(createFollowUpLog({ reason: 'no_training_access' }, 'email'), /membership or pass/);
 });
 
 test('web member admin keeps activation authoritative, bounded and independently recoverable', async () => {

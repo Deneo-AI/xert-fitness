@@ -8,7 +8,7 @@ export const SMS_MAX_RECIPIENTS = 500;
 
 // GSM 03.38 basic set + extension. Anything outside forces UCS-2 encoding,
 // which shrinks each segment from 160 to 70 characters (153/67 when linked).
-// eslint-disable-next-line no-control-regex
+ 
 const GSM_BASIC = /^[A-Za-z0-9 \r\n@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑܧ¿äöñüà^{}\\[~\]|€]*$/;
 const GSM_EXTENDED = new Set(['^', '{', '}', '\\', '[', ']', '~', '|', '€']);
 

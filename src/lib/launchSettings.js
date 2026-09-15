@@ -24,12 +24,11 @@ export function sessionPackPaymentsEnabled(settings) {
   return settings?.bookings_enabled === true && settings?.payments_enabled === true;
 }
 
-// Public pricing is hidden ("Coming soon") unless the flag is explicitly false,
-// so a missing column, an unsaved row or a failed settings fetch all fail safe
-// to hiding amounts rather than leaking prices the business has not published.
-export function pricesComingSoon(settings) {
-  return settings?.prices_coming_soon !== false;
-}
+// `prices_coming_soon` hid amounts on the public session-pack shop. That shop
+// is gone with the packs, and the prices the site shows now — the visitor
+// passes — are read straight from settings and priced again by the server, so
+// nothing reads the flag any more. The column stays where it is: dropping it
+// would rewrite the settings row for no gain.
 
 function normalizeFitboxUrl(value) {
   const raw = String(value || '').trim();

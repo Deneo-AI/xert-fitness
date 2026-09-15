@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { to: '/#facility', label: 'Facility' },
   { to: '/timetable', label: 'Timetable' },
   { to: '/memberships', label: 'Memberships & Passes' },
-  { to: '/booking', label: 'Book & Buy Packs' },
+  { to: '/booking', label: 'Book A Class' },
   { to: '/coaches', label: 'Coaches' },
   { to: '/events', label: 'Event Calendar' },
   { to: '/about', label: 'About XERT' },

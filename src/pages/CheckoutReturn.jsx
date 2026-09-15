@@ -24,14 +24,14 @@ export default function CheckoutReturn() {
         <section className="w-[calc(100vw-3rem)] min-w-0 max-w-xl border border-xert-steel/20 bg-xert-ink p-6 sm:p-10" aria-labelledby="checkout-return-title">
           <Icon className="h-10 w-10 text-xert-steel" aria-hidden="true" />
           <p className="mt-6 font-body text-xs font-semibold uppercase tracking-[0.2em] text-xert-steel">
-            XERT session packs
+            XERT payments
           </p>
           <h1 id="checkout-return-title" className="mt-3 font-display text-4xl uppercase text-xert-offwhite sm:text-5xl">
             {successful ? 'Payment received' : 'Checkout cancelled'}
           </h1>
           <p className="mt-4 font-body leading-relaxed text-xert-concrete/70">
             {successful
-              ? 'Your payment is being confirmed. Return to the XERT app and your new credits will appear automatically.'
+              ? 'Your payment is being confirmed. Return to the XERT app — it updates automatically.'
               : 'No payment was taken. Return to the XERT app whenever you are ready.'}
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

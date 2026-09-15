@@ -31,9 +31,12 @@ test('web and native purchase surfaces fail closed before checkout', async () =>
 
   assert.match(webData, /admin_settings[\s\S]*select\('bookings_enabled,payments_enabled'\)[\s\S]*limit\(2\)/);
   assert.match(webData, /data\?\.length === 1/);
-  assert.match(webBooking, /getSessionPackPaymentAvailability\(\)/);
-  assert.match(webBooking, /disabled=\{!paymentsEnabled \|\| buyingSlug === pack\.slug\}/);
-  assert.match(webBooking, /Pack purchases are paused/);
+  // The web no longer needs to fail closed on pack checkout, because it has no
+  // pack checkout to fail: the storefront retired with the credits it sold.
+  // That is a stronger guarantee than a guarded button, so assert it instead.
+  assert.ok(!webBooking.includes('getSessionPackPaymentAvailability()'));
+  assert.ok(!webBooking.includes('startCheckout'));
+  assert.ok(!/session pack/i.test(webBooking));
 
   assert.match(nativeModels, /struct PublicPlatformSettings[\s\S]*let payments_enabled: Bool/);
   assert.match(nativeAPI, /func publicPlatformSettings[\s\S]*payments_enabled/);

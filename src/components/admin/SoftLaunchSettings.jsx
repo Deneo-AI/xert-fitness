@@ -186,7 +186,6 @@ export default function SoftLaunchSettings({ onDirtyChange = NOOP }) {
       <div className="bg-xert-ink border border-xert-steel/20 p-6 mb-6 space-y-0">
         <Toggle label="Countdown enabled" desc="Shows countdown timer on public pages." field="countdown_enabled" />
         <Toggle label="Bookings enabled" desc="Shows booking buttons on class cards. Turning this off also pauses checkout." field="bookings_enabled" />
-        <Toggle label="Prices coming soon" desc="When on, public session-pack pricing shows 'Coming soon' instead of amounts. Turn off to reveal real prices." field="prices_coming_soon" />
         <Toggle
           label="Session pack payments"
           desc={settings.fitbox_enabled

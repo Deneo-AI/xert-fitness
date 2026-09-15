@@ -106,10 +106,10 @@ test('a pass list with nobody\'s details does not overwrite remembered ones', ()
 test('the first booking step names the ways to pay, not the retired session pack', () => {
   // Session packs are gone, so "purchase a session pack" was step one of a
   // journey nobody could take.
-  for (const file of ['../src/components/public/SessionPacks.jsx', '../src/pages/Booking.jsx']) {
+  for (const file of ['../src/components/public/HowToTrain.jsx', '../src/pages/Booking.jsx']) {
     const source = read(file);
     assert.ok(!source.includes('Purchase a session pack.'), `${file} still sells session packs`);
-    assert.match(source, /Pay for a casual visit, a Three Day Pass or three months upfront/);
+    assert.match(source, /Memberships &amp; Passes/);
   }
 });
 

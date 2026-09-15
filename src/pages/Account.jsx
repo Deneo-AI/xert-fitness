@@ -608,7 +608,7 @@ export default function Account() {
           <div className="relative xert-card p-6 sm:p-8">
             <h1 className="font-display text-3xl uppercase text-xert-offwhite mb-3">Sign in to your account</h1>
             <p className="font-body text-sm mb-8 text-xert-pale/65">
-              View your class credits, bookings and purchases.
+              View your bookings, purchases and training goals.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link to={authPathWithNext('/login', accountReturnPath)} className="xert-btn-primary inline-flex min-h-[52px] w-full sm:w-auto items-center justify-center px-6 font-display text-base uppercase tracking-wide">
@@ -701,10 +701,10 @@ export default function Account() {
                 ? <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-default)' }} />
                 : <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: 'var(--state-warning)' }} />}
             <p className="font-body text-sm flex-1 min-w-[14rem]" style={{ color: 'var(--text-secondary)' }}>
-              {purchaseStatus === 'confirming' && 'Payment received — confirming your session pack now.'}
-              {purchaseStatus === 'confirmed' && 'Payment confirmed — your session pack is ready.'}
-              {purchaseStatus === 'refunded' && 'This payment was refunded. No purchased credits remain on the order.'}
-              {purchaseStatus === 'failed' && 'Checkout did not complete. No session pack was activated.'}
+              {purchaseStatus === 'confirming' && 'Payment received — confirming your purchase now.'}
+              {purchaseStatus === 'confirmed' && 'Payment confirmed.'}
+              {purchaseStatus === 'refunded' && 'This payment was refunded.'}
+              {purchaseStatus === 'failed' && 'Checkout did not complete. Nothing was activated.'}
               {purchaseStatus === 'delayed' && 'Confirmation is taking longer than usual. Your payment record remains safe.'}
             </p>
             {purchaseStatus === 'delayed' && (
