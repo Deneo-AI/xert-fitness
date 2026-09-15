@@ -11,7 +11,8 @@ import './nav/public-nav.css';
 const LOGO = '/assets/xert-logo-horizontal-light.png';
 const links = [
   { to: '/', label: 'Home' }, { href: '/#facility', label: 'Facility' },
-  { to: '/timetable', label: 'Timetable' }, { to: '/coaches', label: 'Coaches' },
+  { to: '/timetable', label: 'Timetable' }, { to: '/memberships', label: 'Memberships' },
+  { to: '/coaches', label: 'Coaches' },
   { to: '/events', label: 'Events' }, { to: '/contact', label: 'Contact' },
 ];
 

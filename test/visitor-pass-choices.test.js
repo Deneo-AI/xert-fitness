@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   VISITOR_PASS_CHOICES, WEEKLY_MEMBERSHIP, shouldOfferVisitorPasses,
-  visitorDetailsFromSignup, visitorPassChoices,
+  visitorDetailsFromSignup, visitorPassChoices, visitorPassURL,
 } from '../src/lib/visitorPassChoices.js';
+import { metadataForPath } from '../src/lib/pageMetadata.js';
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
 
@@ -123,6 +124,9 @@ test('a weekly membership is offered too, and sends people to FitBox', () => {
   // of the two steps is the whole instruction.
   assert.equal(WEEKLY_MEMBERSHIP.steps.length, 2);
   assert.match(WEEKLY_MEMBERSHIP.steps[0], /App Store or Google Play/);
+  // The invite is rendered in different places on phone and desktop, so the
+  // wording cannot point at where it sits on the page.
+  assert.ok(!/\b(below|above)\b/.test(WEEKLY_MEMBERSHIP.steps.join(' ')));
   // It is not one of the priced passes, so it must never be priced as one.
   assert.ok(!VISITOR_PASS_CHOICES.some(choice => choice.kind === WEEKLY_MEMBERSHIP.kind));
   assert.ok(!visitorPassChoices({}).some(choice => choice.kind === WEEKLY_MEMBERSHIP.kind));
@@ -136,6 +140,49 @@ test('the FitBox invite opens safely in a new tab, not as a pass link', () => {
   assert.match(component, /rel="noopener noreferrer"/);
   assert.match(component, /target="_blank"/);
   assert.match(component, /WEEKLY_MEMBERSHIP\.steps\.map/);
+});
+
+test('a QR encodes an absolute address, since the phone scanning it is elsewhere', () => {
+  for (const choice of VISITOR_PASS_CHOICES) {
+    const url = visitorPassURL(choice, 'https://www.xertfitness.com.au');
+    assert.equal(url, `https://www.xertfitness.com.au${choice.path}`);
+    // A relative path in a QR simply fails to open.
+    assert.match(url, /^https:\/\//);
+  }
+});
+
+test('the memberships page is a real, indexable, listed route', () => {
+  const routes = read('../src/App.jsx');
+  assert.match(routes, /path="\/memberships" element=\{<Memberships \/>\}/);
+  // "Passes" is what half of people call it, so it lands in the same place.
+  assert.match(routes, /path="\/passes" element=\{<Navigate to="\/memberships" replace \/>\}/);
+
+  const meta = metadataForPath('/memberships');
+  assert.equal(meta.indexable, true);
+  assert.match(meta.title, /Memberships/);
+  assert.ok(read('../public/sitemap.xml').includes('/memberships</loc>'),
+    'a page nobody can find is no better than no page');
+  assert.match(read('../src/components/public/PublicNav.jsx'), /to: '\/memberships'/);
+});
+
+test('the memberships page shows every option, each with its QR', () => {
+  const page = read('../src/pages/Memberships.jsx');
+  assert.match(page, /visitorPassChoices\(settings\)/);
+  assert.match(page, /<PassQRCode url=\{visitorPassURL\(choice, origin\)\}/);
+  // The FitBox invite needs a code of its own, not just a link.
+  assert.match(page, /<PassQRCode url=\{WEEKLY_MEMBERSHIP\.url\}/);
+  assert.match(page, /rel="noopener noreferrer"/);
+  // Prices come from the club's settings, never typed into the page.
+  assert.ok(!/\$\d/.test(page), 'prices must not be hardcoded into the page');
+});
+
+test('a QR that cannot be drawn is dropped, not left as an empty frame', () => {
+  const component = read('../src/components/public/PassQRCode.jsx');
+  assert.match(component, /hidden=\{!ready\}/);
+  assert.match(component, /\.catch\(\(\) => \{\}\)/);
+  // A canvas carrying meaning needs a name a screen reader can say.
+  assert.match(component, /role="img"/);
+  assert.match(component, /aria-label=\{`QR code for \$\{label\}`\}/);
 });
 
 test('every offered pass has a real public route behind it', () => {

@@ -30,6 +30,7 @@ export const PUBLIC_METADATA = Object.freeze({
   '/booking': { title: 'Book Classes and Session Packs | XERT Fitness', description: 'Request a class, personal training session or XERT Fitness session pack.' },
   '/contact': { title: 'Contact XERT Fitness | Kingaroy', description: 'Contact XERT Fitness about classes, coaching, allied health partnerships or your first session.' },
   '/training-guide': { title: 'Functional Training Guide | XERT Fitness', description: 'Learn how XERT approaches functional fitness, movement quality, conditioning and event preparation.' },
+  '/memberships': { title: 'Memberships and Passes | XERT Fitness', description: 'Casual visits, the Three Day Pass, three months upfront or an ongoing weekly membership at XERT Fitness in Kingaroy — prices, QR codes and how to join.' },
   '/timetable': { title: 'Class Timetable | XERT Fitness', description: 'View the XERT Fitness soft-launch timetable and planned class schedule in Kingaroy.' },
   '/app': { title: 'XERT Fitness iPhone App', description: 'Manage XERT bookings, session credits, training goals and events from the XERT Fitness iPhone app.' },
   '/trainer-interest': { title: 'Coach Opportunities | XERT Fitness', description: 'Register your interest in coaching or personal training opportunities with XERT Fitness.' },

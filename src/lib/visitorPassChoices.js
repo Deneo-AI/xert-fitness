@@ -55,7 +55,7 @@ export const WEEKLY_MEMBERSHIP = Object.freeze({
   url: 'https://links.fitbox.iq/invites/register/0545',
   steps: Object.freeze([
     'Install FitBox from the App Store or Google Play.',
-    'Open the XERT invite below and register.',
+    'Open the XERT invite and register.',
   ]),
 });
 
@@ -67,6 +67,15 @@ export function visitorPassChoices(settings = {}) {
   return VISITOR_PASS_CHOICES.map(choice => ({
     ...choice, ...visitorPassPricing(choice.kind, settings),
   }));
+}
+
+/**
+ * The absolute address a pass's QR code has to encode. A QR is scanned by a
+ * phone that is not on this page and has no idea what "/casual" means, so a
+ * relative path would simply fail to open.
+ */
+export function visitorPassURL(choice, origin) {
+  return new URL(choice.path, origin).toString();
 }
 
 /**

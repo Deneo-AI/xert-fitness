@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/#facility', label: 'Facility' },
   { to: '/timetable', label: 'Timetable' },
+  { to: '/memberships', label: 'Memberships & Passes' },
   { to: '/booking', label: 'Book & Buy Packs' },
   { to: '/coaches', label: 'Coaches' },
   { to: '/events', label: 'Event Calendar' },

@@ -16,6 +16,7 @@ const ThankYou = lazy(() => import('./pages/ThankYou'));
 const TrainerInterest = lazy(() => import('./pages/TrainerInterest'));
 const PartnerInterest = lazy(() => import('./pages/PartnerInterest'));
 const SoftLaunchTimetable = lazy(() => import('./pages/SoftLaunchTimetable'));
+const Memberships = lazy(() => import('./pages/Memberships'));
 const ReleaseClassSpot = lazy(() => import('./pages/ReleaseClassSpot'));
 const AdminCommandCentre = lazy(() => import('./pages/AdminCommandCentre'));
 // Dev-only owner shell preview with fixture data; never routed in production builds.
@@ -76,6 +77,9 @@ const AppRoutes = () => (
       <Route path="/open/*" element={<NativeTaskBridge />} />
       {/* The agreement moved onto /terms; anything already pointing here still lands. */}
       <Route path="/membership-terms" element={<Navigate to="/terms" replace />} />
+      <Route path="/memberships" element={<Memberships />} />
+      {/* People say "passes" as often as "memberships"; both land in one place. */}
+      <Route path="/passes" element={<Navigate to="/memberships" replace />} />
       <Route path="/casual" element={<CasualVisit key="casual" />} />
       <Route path="/3daypass" element={<CasualVisit key="three-day-pass" threeDayPass />} />
       <Route path="/3months" element={<CasualVisit key="three-month-membership" threeMonth />} />

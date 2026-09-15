@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarDays, List } from 'lucide-react';
 import PublicNav from '@/components/public/PublicNav';
 import PublicFooter from '@/components/public/PublicFooter';
@@ -212,6 +212,10 @@ export default function SoftLaunchTimetable() {
                 Book any class above, then pay whichever way suits you. Bring your receipt to your first session.
               </p>
               <VisitorPassChoices settings={settings} signup={{}} />
+              <Link to="/memberships"
+                className="inline-flex min-h-11 items-center font-body text-xs uppercase tracking-wider text-xert-steel underline underline-offset-4 hover:text-xert-offwhite">
+                See every membership and pass, with QR codes
+              </Link>
             </div>
           </section>
         )}
