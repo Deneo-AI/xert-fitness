@@ -18,7 +18,7 @@ import { attendanceRoll, attendanceRowId, blankAttendanceDraft, createAttendance
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
 import ClassCalendarBoard from '@/components/admin/ClassCalendarBoard';
 import ClassBankManager from '@/components/admin/ClassBankManager';
-import { ADMIN_BUTTON, ADMIN_INPUT, AdminPageHeader, AdminFilterBar, AdminSegmented, AdminBadge, AdminSkeleton, AdminEmptyState, AdminDrawer } from '@/components/admin/ui';
+import { ADMIN_BUTTON, ADMIN_INPUT, ADMIN_PANEL, ADMIN_TEXT, AdminPageHeader, AdminFilterBar, AdminSegmented, AdminBadge, AdminSkeleton, AdminEmptyState, AdminDrawer } from '@/components/admin/ui';
 
 const CLASS_TYPES = ['XERT Foundation', 'XERT Strength', 'XERT Engine', 'XERT Hybrid', 'XERT Event Prep', 'XERT Team'];
 const BOOKING_STATUSES = ['requested', 'confirmed', 'waitlisted', 'cancelled', 'declined', 'attended', 'no_show'];
@@ -753,10 +753,19 @@ export default function ClassCalendarAdmin({ initialAction, initialSessionId, on
         {view === 'list' && <AdminSegmented label="Class period" value={timeFilter} onValueChange={setTimeFilter} options={[{value:'upcoming',label:`Upcoming (${upcomingCount})`},{value:'past',label:`Past (${pastCount})`},{value:'all',label:'All'}]} />}
         {cancelledCount > 0 && <button type="button" className="admin-kit-button" onClick={() => setShowCancelled(current => !current)} aria-pressed={showCancelled}>{showCancelled ? 'Hide cancelled' : `Show cancelled (${cancelledCount})`}</button>}
       </div>
-      <AdminFilterBar queryKey="calendarSearch" searchLabel="Search classes" filters={[{key:'calendarType',label:'Class type',options:CLASS_TYPES.map(value => ({value,label:value}))}]} />
+      <AdminFilterBar queryKey="calendarSearch" searchLabel="Search class names" filters={[{key:'calendarType',label:'Class type',options:CLASS_TYPES.map(value => ({value,label:value}))}]} />
 
-      {/* Find one person across the whole timetable, both ways into a class. */}
-      <div className="mb-6">
+      {/* Find one person across the whole timetable, both ways into a class.
+          This sat directly under the class filter as a second, unlabelled
+          search box — so staff typed a name into the labelled one above,
+          matched nothing, and concluded you could search classes but not the
+          people in them. It says what it is now. */}
+      <div className={`${ADMIN_PANEL} mb-6 p-4`}>
+        <p className={ADMIN_TEXT.sectionHeading}>Find a person</p>
+        <p className={`${ADMIN_TEXT.lede} mt-1 mb-3`}>
+          Every class someone is signed up for, members and public sign-ups alike. Search by name,
+          email or phone, then press a class to open its roster.
+        </p>
         <label className="relative block max-w-md">
           <span className="sr-only">Search everyone registered for a class</span>
           <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
@@ -764,7 +773,7 @@ export default function ClassCalendarAdmin({ initialAction, initialSessionId, on
             type="search"
             value={attendeeQuery}
             onChange={event => setAttendeeQuery(event.target.value)}
-            placeholder="Search a name, email or phone across every class"
+            placeholder="Name, email or phone"
             className={`${ADMIN_INPUT} pl-10`}
           />
           {attendeeSearching && <LoaderCircle aria-hidden="true" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-secondary" />}

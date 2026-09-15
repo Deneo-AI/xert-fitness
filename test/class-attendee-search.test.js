@@ -100,7 +100,7 @@ test('the calendar searches as you type and jumps to the class you pick', async 
   const screen = await read('../src/components/admin/ClassCalendarAdmin.jsx');
   const data = await read('../src/lib/adminData.js');
 
-  assert.match(screen, /Search a name, email or phone across every class/);
+  assert.match(screen, /placeholder="Name, email or phone"/);
   assert.match(screen, /window\.setTimeout\(async \(\) => \{/, 'typing a name is one query, not one per keystroke');
   assert.match(screen, /if \(active\) setAttendeeMatches\(attendeeMatchesByPerson\(rows\)\)/,
     'a slower earlier query must not overwrite the latest answer');
@@ -109,4 +109,23 @@ test('the calendar searches as you type and jumps to the class you pick', async 
   assert.match(screen, /Nobody matching/, 'an empty result says so rather than showing nothing');
   assert.match(data, /p_query: term/);
   assert.match(data, /if \(term\.length < 2\) return \[\]/);
+});
+
+test('the person search says what it is, beside a class search that says what it is not', async () => {
+  const screen = await read('../src/components/admin/ClassCalendarAdmin.jsx');
+
+  // It sat directly under the class filter as a second, unlabelled search box
+  // — a magnifying glass and a placeholder. Staff typed a name into the
+  // labelled one above it, matched nothing, and reasonably concluded the
+  // calendar could search classes but not the people in them.
+  assert.match(screen, /<p className=\{ADMIN_TEXT\.sectionHeading\}>Find a person<\/p>/);
+  assert.match(screen, /Every class someone is signed up for, members and public sign-ups alike/);
+  assert.match(screen, /searchLabel="Search class names"/,
+    'the class filter has to say it searches names, not people');
+
+  // A visible heading is the whole point; a screen-reader-only one is what it
+  // already had.
+  const heading = screen.indexOf('Find a person');
+  const input = screen.indexOf('value={attendeeQuery}');
+  assert.ok(heading > 0 && heading < input, 'the heading must lead the input it names');
 });
