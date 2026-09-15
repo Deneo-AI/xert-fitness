@@ -187,7 +187,14 @@ test('the memberships page is a real, indexable, listed route', () => {
   assert.match(meta.title, /Memberships/);
   assert.ok(read('../public/sitemap.xml').includes('/memberships</loc>'),
     'a page nobody can find is no better than no page');
-  assert.match(read('../src/components/public/PublicNav.jsx'), /to: '\/memberships'/);
+  // Named the same in both places people look for it, and the same as the
+  // page's own heading — "Memberships" alone hid that the passes are there.
+  for (const file of [
+    '../src/components/public/PublicNav.jsx',
+    '../src/components/public/PublicFooter.jsx',
+  ]) {
+    assert.match(read(file), /\{ to: '\/memberships', label: 'Memberships & Passes' \}/, file);
+  }
 });
 
 test('the memberships page shows every option, each with its QR', () => {
