@@ -47,11 +47,46 @@ export default function Memberships() {
             Ways to<br /><span className="text-xert-steel">Train Here.</span>
           </h1>
           <p className="mb-12 max-w-xl font-body text-sm leading-relaxed text-xert-pale/65">
-            Pay for a single visit, try us for three days, pay three months upfront, or join on an
-            ongoing weekly membership. Book any class on the{' '}
+            Join on an ongoing weekly membership, pay for a single visit, try us for three days, or
+            pay three months upfront. Book any class on the{' '}
             <Link to="/timetable" className="text-xert-steel underline underline-offset-2">timetable</Link>
             {' '}first — you can pay before you come in or when you arrive.
           </p>
+
+          {/* Memberships live in FitBox, not here, so this cannot be a price
+              and a button — it is an app to install and an invite to open. */}
+          <div className="xert-card mb-4 flex flex-col gap-4 p-6 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg uppercase tracking-wide text-xert-offwhite">
+                {WEEKLY_MEMBERSHIP.label}
+              </h2>
+              <p className="mt-1 font-body text-sm text-xert-pale/60">{WEEKLY_MEMBERSHIP.blurb}</p>
+              <ol className="mt-3 space-y-2">
+                {WEEKLY_MEMBERSHIP.steps.map((step, index) => (
+                  <li key={step} className="font-body text-sm text-xert-pale/65">
+                    {index + 1}. {step}
+                    {index === 0 && (
+                      <span className="mt-2 flex flex-wrap gap-2">
+                        {WEEKLY_MEMBERSHIP.stores.map(store => (
+                          <a key={store.platform} href={store.url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center gap-1.5 border border-xert-steel/30 px-3 font-body text-xs text-xert-pale/80 transition-colors hover:border-xert-steel hover:text-xert-offwhite">
+                            {store.label}
+                            <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                          </a>
+                        ))}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <a href={WEEKLY_MEMBERSHIP.url} target="_blank" rel="noopener noreferrer"
+                className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 border border-xert-steel/40 px-5 font-display text-xs uppercase tracking-wide text-xert-pale transition-colors hover:border-xert-steel hover:text-xert-offwhite">
+                Join in FitBox
+                <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+              </a>
+            </div>
+            <PassQRCode url={WEEKLY_MEMBERSHIP.url} label={WEEKLY_MEMBERSHIP.label} />
+          </div>
 
           {paymentsOn ? (
             <ul className="grid gap-4 sm:grid-cols-2">
@@ -87,41 +122,6 @@ export default function Memberships() {
               </p>
             </div>
           )}
-
-          {/* Memberships live in FitBox, not here, so this cannot be a price
-              and a button — it is an app to install and an invite to open. */}
-          <div className="xert-card mt-4 flex flex-col gap-4 p-6 sm:flex-row sm:items-start">
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg uppercase tracking-wide text-xert-offwhite">
-                {WEEKLY_MEMBERSHIP.label}
-              </h2>
-              <p className="mt-1 font-body text-sm text-xert-pale/60">{WEEKLY_MEMBERSHIP.blurb}</p>
-              <ol className="mt-3 space-y-2">
-                {WEEKLY_MEMBERSHIP.steps.map((step, index) => (
-                  <li key={step} className="font-body text-sm text-xert-pale/65">
-                    {index + 1}. {step}
-                    {index === 0 && (
-                      <span className="mt-2 flex flex-wrap gap-2">
-                        {WEEKLY_MEMBERSHIP.stores.map(store => (
-                          <a key={store.platform} href={store.url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex min-h-11 items-center gap-1.5 border border-xert-steel/30 px-3 font-body text-xs text-xert-pale/80 transition-colors hover:border-xert-steel hover:text-xert-offwhite">
-                            {store.label}
-                            <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                          </a>
-                        ))}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ol>
-              <a href={WEEKLY_MEMBERSHIP.url} target="_blank" rel="noopener noreferrer"
-                className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 border border-xert-steel/40 px-5 font-display text-xs uppercase tracking-wide text-xert-pale transition-colors hover:border-xert-steel hover:text-xert-offwhite">
-                Join in FitBox
-                <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-              </a>
-            </div>
-            <PassQRCode url={WEEKLY_MEMBERSHIP.url} label={WEEKLY_MEMBERSHIP.label} />
-          </div>
 
           <p className="mt-8 font-body text-xs leading-relaxed text-xert-pale/45">
             Payments are taken by Stripe on their secure page. XERT never sees or stores your card

@@ -24,36 +24,10 @@ export default function VisitorPassChoices({ settings, signup, note, onChoose })
       <p className="mb-3 font-body text-xs uppercase tracking-wider text-xert-pale/55">
         How to pay or join
       </p>
-      <ul className="space-y-2">
-        {choices.map(choice => (
-          <li key={choice.kind}>
-            <Link to={choice.path}
-              onClick={() => { if (carry) rememberCasualVisitor(visitor); onChoose?.(choice); }}
-              className="flex min-h-[52px] items-center justify-between gap-3 border border-xert-steel/25 p-3 transition-colors hover:border-xert-steel hover:bg-xert-steel/10">
-              <span className="min-w-0">
-                <span className="block font-display text-sm uppercase tracking-wide text-xert-offwhite">
-                  {choice.label}
-                </span>
-                <span className="block font-body text-xs text-xert-pale/60">{choice.blurb}</span>
-              </span>
-              <span className="shrink-0 text-right">
-                {choice.discounted && (
-                  <span className="block font-body text-xs text-xert-pale/45 line-through">
-                    {formatCasualVisitPrice(choice.full)}
-                  </span>
-                )}
-                <span className="block font-display text-sm text-xert-steel">
-                  {formatCasualVisitPrice(choice.charge)}
-                </span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {/* The fourth way to join, and the one this site cannot sell. Memberships
+      {/* Listed first, and the one this site cannot sell. Memberships
           live in FitBox, so it gets its own block: a link styled like the
           others would promise a checkout that is not there. */}
-      <div className="mt-3 border border-xert-steel/25 p-3">
+      <div className="mb-2 border border-xert-steel/25 p-3">
         <p className="font-display text-sm uppercase tracking-wide text-xert-offwhite">
           {WEEKLY_MEMBERSHIP.label}
         </p>
@@ -83,6 +57,32 @@ export default function VisitorPassChoices({ settings, signup, note, onChoose })
           <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
         </a>
       </div>
+      <ul className="space-y-2">
+        {choices.map(choice => (
+          <li key={choice.kind}>
+            <Link to={choice.path}
+              onClick={() => { if (carry) rememberCasualVisitor(visitor); onChoose?.(choice); }}
+              className="flex min-h-[52px] items-center justify-between gap-3 border border-xert-steel/25 p-3 transition-colors hover:border-xert-steel hover:bg-xert-steel/10">
+              <span className="min-w-0">
+                <span className="block font-display text-sm uppercase tracking-wide text-xert-offwhite">
+                  {choice.label}
+                </span>
+                <span className="block font-body text-xs text-xert-pale/60">{choice.blurb}</span>
+              </span>
+              <span className="shrink-0 text-right">
+                {choice.discounted && (
+                  <span className="block font-body text-xs text-xert-pale/45 line-through">
+                    {formatCasualVisitPrice(choice.full)}
+                  </span>
+                )}
+                <span className="block font-display text-sm text-xert-steel">
+                  {formatCasualVisitPrice(choice.charge)}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
       {note && (
         <p className="mt-3 font-body text-xs leading-relaxed text-xert-pale/55">{note}</p>
       )}
