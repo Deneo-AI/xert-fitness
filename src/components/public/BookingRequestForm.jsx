@@ -41,6 +41,10 @@ export default function BookingRequestForm({
     notes: '', consent_to_contact: false, company_website: '',
     class_session_id: session?.id || '',
   });
+  // Memberships are not linked to the website yet, so nothing here can tell a
+  // member from a walk-in. Asking is what lets the confirmation offer a
+  // non-member the ways to pay instead of leaving them booked in and stuck.
+  const [hasMembership, setHasMembership] = useState(null);
   const [rejected, setRejected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,12 +56,19 @@ export default function BookingRequestForm({
     if (!form.full_name.trim()) { setError('Full name is required.'); return; }
     if (!form.email.trim() || !form.email.includes('@')) { setError('Valid email is required.'); return; }
     if (!form.phone.trim()) { setError('Phone is required.'); return; }
+    if (hasMembership === null) { setError('Let us know whether you already have a XERT membership.'); return; }
     if (!form.consent_to_contact) { setError('Consent to contact is required.'); return; }
     setLoading(true);
     setError('');
     try {
       const result = await submitClassSignup({ ...form, join_waitlist: joinWaitlist });
-      onSuccess?.(result);
+      // The answer and their details travel with the result so the page can
+      // offer a non-member the passes without asking for any of it twice.
+      onSuccess?.({
+        ...result,
+        has_membership: hasMembership,
+        full_name: form.full_name, email: form.email, phone: form.phone,
+      });
     } catch (submitError) {
       setError(friendlySignupError(submitError));
       // The class filled while this form was open. Tell the page so the counts
@@ -113,6 +124,27 @@ export default function BookingRequestForm({
           rows={2} placeholder="Any questions or information for the coach (optional)"
           className="xert-input resize-none" />
       </div>
+
+      <fieldset>
+        <legend className="xert-label">
+          Do you already have a XERT membership?<span className="text-xert-steel ml-1" aria-hidden="true">*</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {[[true, 'Yes, I am a member'], [false, 'No, not yet']].map(([value, label]) => (
+            <button type="button" key={label}
+              onClick={() => { setHasMembership(value); setError(''); }}
+              aria-pressed={hasMembership === value}
+              className={`${chipClasses} ${hasMembership === value ? chipActive : chipIdle}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {hasMembership === false && (
+          <p className="mt-2 font-body text-xs text-xert-pale/65">
+            No problem — we will show you the ways to pay once your spot is held.
+          </p>
+        )}
+      </fieldset>
 
       {takesSpot && (
         <p className="font-body text-xs text-xert-pale/70">

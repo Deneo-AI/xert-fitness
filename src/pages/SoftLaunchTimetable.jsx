@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { getClassSessions, getSoftLaunchSettings, getDefaultSettings } from '@/lib/adminData';
 import { getPublicClassAvailability } from '@/lib/submitForms';
 import { classSignupState, signupOutcomeMessage } from '@/lib/classSignup';
+import VisitorPassChoices from '@/components/public/VisitorPassChoices';
+import { shouldOfferVisitorPasses } from '@/lib/visitorPassChoices';
 import { gymDateKey } from '@/lib/gymTime';
 
 const VIEW_OPTIONS = [
@@ -95,6 +97,11 @@ export default function SoftLaunchTimetable() {
     fitbox,
   });
   const successCopy = signupOutcomeMessage(bookingSuccess);
+  // Memberships are not linked to the website, so a booking charges nobody.
+  // Somebody who told the form they are not a member is shown the ways to pay
+  // here, rather than being left to find a QR code at the front desk they have
+  // not walked into yet.
+  const offerPasses = shouldOfferVisitorPasses(bookingSuccess, settings);
 
   return (
     <div className="bg-xert-navy min-h-screen flex flex-col">
@@ -195,6 +202,20 @@ export default function SoftLaunchTimetable() {
           </div>
         </section>
 
+        {/* Not a member? The three ways to pay, in the open. The QR codes at the
+            front desk are no use to somebody booking from their kitchen. */}
+        {settings.casual_payments_enabled !== false && (
+          <section className="px-6 pb-4">
+            <div className="mx-auto max-w-4xl xert-card p-6 sm:p-8">
+              <h2 className="font-display text-xl text-xert-offwhite uppercase">Not a member?</h2>
+              <p className="mt-2 mb-5 max-w-md font-body text-sm text-xert-pale/65">
+                Book any class above, then pay whichever way suits you. Bring your receipt to your first session.
+              </p>
+              <VisitorPassChoices settings={settings} signup={{}} />
+            </div>
+          </section>
+        )}
+
         {/* PT Section */}
         <div className="px-6"><div className="xert-divider max-w-4xl mx-auto" /></div>
         <section className="relative overflow-hidden py-14 sm:py-20 px-6">
@@ -255,7 +276,7 @@ export default function SoftLaunchTimetable() {
 
       {/* Booking success */}
       <Dialog open={Boolean(bookingSuccess)} onOpenChange={(open) => { if (!open) setBookingSuccess(null); }}>
-        <DialogContent className={`${dialogClasses} max-w-sm p-8 text-center`}>
+        <DialogContent className={`${dialogClasses} max-h-[90vh] overflow-y-auto p-8 text-center ${offerPasses ? 'max-w-md' : 'max-w-sm'}`}>
           <div className="w-12 h-12 rounded-full bg-xert-steel text-xert-navy flex items-center justify-center mx-auto mb-4">
             <span className="text-xl" aria-hidden="true">✓</span>
           </div>
@@ -265,6 +286,10 @@ export default function SoftLaunchTimetable() {
           <DialogDescription className="font-body text-sm text-xert-pale/65 mb-6">
             {successCopy.body}
           </DialogDescription>
+          {offerPasses && (
+            <VisitorPassChoices settings={settings} signup={bookingSuccess}
+              note="Your spot is already held — pay now or on arrival. Bring your receipt either way." />
+          )}
           {successCopy.cancelToken && (
             <p className="mb-6 font-body text-xs text-xert-pale/55">
               Can&rsquo;t make it?{' '}
@@ -277,7 +302,7 @@ export default function SoftLaunchTimetable() {
           )}
           <button onClick={() => setBookingSuccess(null)}
             className="xert-btn-primary mx-auto inline-flex min-h-[52px] w-full items-center justify-center px-6 font-display text-sm uppercase tracking-wide">
-            Done
+            {offerPasses ? 'Pay later' : 'Done'}
           </button>
         </DialogContent>
       </Dialog>
