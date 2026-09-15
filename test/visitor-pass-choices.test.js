@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
-  VISITOR_PASS_CHOICES, shouldOfferVisitorPasses, visitorDetailsFromSignup, visitorPassChoices,
+  VISITOR_PASS_CHOICES, WEEKLY_MEMBERSHIP, shouldOfferVisitorPasses,
+  visitorDetailsFromSignup, visitorPassChoices,
 } from '../src/lib/visitorPassChoices.js';
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -109,6 +110,32 @@ test('the first booking step names the ways to pay, not the retired session pack
     assert.ok(!source.includes('Purchase a session pack.'), `${file} still sells session packs`);
     assert.match(source, /Pay for a casual visit, a Three Day Pass or three months upfront/);
   }
+});
+
+test('a weekly membership is offered too, and sends people to FitBox', () => {
+  // Memberships are not sold on this site, so this one is an app to install
+  // and an invite to open — not a price and not a checkout.
+  assert.equal(WEEKLY_MEMBERSHIP.url, 'https://links.fitbox.iq/invites/register/0545');
+  assert.match(WEEKLY_MEMBERSHIP.url, /^https:\/\//);
+  assert.equal(WEEKLY_MEMBERSHIP.charge, undefined, 'a membership has no price to show here');
+  assert.ok(WEEKLY_MEMBERSHIP.label && WEEKLY_MEMBERSHIP.blurb);
+  // Opening the invite without the app installed is a dead end, so the order
+  // of the two steps is the whole instruction.
+  assert.equal(WEEKLY_MEMBERSHIP.steps.length, 2);
+  assert.match(WEEKLY_MEMBERSHIP.steps[0], /App Store or Google Play/);
+  // It is not one of the priced passes, so it must never be priced as one.
+  assert.ok(!VISITOR_PASS_CHOICES.some(choice => choice.kind === WEEKLY_MEMBERSHIP.kind));
+  assert.ok(!visitorPassChoices({}).some(choice => choice.kind === WEEKLY_MEMBERSHIP.kind));
+});
+
+test('the FitBox invite opens safely in a new tab, not as a pass link', () => {
+  const component = read('../src/components/public/VisitorPassChoices.jsx');
+  assert.match(component, /href=\{WEEKLY_MEMBERSHIP\.url\}/);
+  // An external tab that can reach back into this one is a security hole, and
+  // a router Link would try to navigate to it inside the app.
+  assert.match(component, /rel="noopener noreferrer"/);
+  assert.match(component, /target="_blank"/);
+  assert.match(component, /WEEKLY_MEMBERSHIP\.steps\.map/);
 });
 
 test('every offered pass has a real public route behind it', () => {

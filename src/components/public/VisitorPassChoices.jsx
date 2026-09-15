@@ -1,13 +1,16 @@
 import React from 'react';
+import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCasualVisitPrice, rememberCasualVisitor } from '@/lib/casualVisit';
-import { visitorDetailsFromSignup, visitorPassChoices } from '@/lib/visitorPassChoices';
+import { visitorDetailsFromSignup, visitorPassChoices, WEEKLY_MEMBERSHIP } from '@/lib/visitorPassChoices';
 
 /**
- * The three ways a non-member can pay for the class they have just booked.
+ * The four ways a non-member can pay for, or join for, the class they have
+ * just booked: three passes sold here, and a weekly membership set up in
+ * FitBox because that is where memberships live.
  *
- * Their details carry across, so nobody retypes a name and number they gave
- * thirty seconds ago on the same screen.
+ * Their details carry across to the passes, so nobody retypes a name and
+ * number they gave thirty seconds ago on the same screen.
  */
 export default function VisitorPassChoices({ settings, signup, note, onChoose }) {
   const choices = visitorPassChoices(settings);
@@ -19,7 +22,7 @@ export default function VisitorPassChoices({ settings, signup, note, onChoose })
   return (
     <div className="mb-6 text-left">
       <p className="mb-3 font-body text-xs uppercase tracking-wider text-xert-pale/55">
-        Choose how to pay
+        How to pay or join
       </p>
       <ul className="space-y-2">
         {choices.map(choice => (
@@ -47,6 +50,28 @@ export default function VisitorPassChoices({ settings, signup, note, onChoose })
           </li>
         ))}
       </ul>
+      {/* The fourth way to join, and the one this site cannot sell. Memberships
+          live in FitBox, so it gets its own block: a link styled like the
+          others would promise a checkout that is not there. */}
+      <div className="mt-3 border border-xert-steel/25 p-3">
+        <p className="font-display text-sm uppercase tracking-wide text-xert-offwhite">
+          {WEEKLY_MEMBERSHIP.label}
+        </p>
+        <p className="font-body text-xs text-xert-pale/60">{WEEKLY_MEMBERSHIP.blurb}</p>
+        <ol className="mt-2 space-y-1">
+          {WEEKLY_MEMBERSHIP.steps.map((step, index) => (
+            <li key={step} className="font-body text-xs text-xert-pale/60">
+              {index + 1}. {step}
+            </li>
+          ))}
+        </ol>
+        <a href={WEEKLY_MEMBERSHIP.url} target="_blank" rel="noopener noreferrer"
+          onClick={() => onChoose?.(WEEKLY_MEMBERSHIP)}
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 border border-xert-steel/40 px-4 font-display text-xs uppercase tracking-wide text-xert-pale transition-colors hover:border-xert-steel hover:text-xert-offwhite">
+          Join in FitBox
+          <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+        </a>
+      </div>
       {note && (
         <p className="mt-3 font-body text-xs leading-relaxed text-xert-pale/55">{note}</p>
       )}

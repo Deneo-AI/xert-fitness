@@ -7,6 +7,12 @@
 //
 // So the sign-up asks whether they are already a member, and anyone who is not
 // is offered the three ways to pay, priced from the club's own settings.
+//
+// A weekly membership is the fourth way, and the odd one out: it is not a
+// payment this site can take. Memberships live in FitBox, so joining means
+// installing FitBox and opening the club's invite there. It is listed beside
+// the passes anyway — somebody deciding how to pay wants to see all four, not
+// three here and one nobody mentioned.
 
 import {
   CASUAL_VISIT_ACTION, THREE_DAY_PASS_ACTION, THREE_MONTH_MEMBERSHIP_ACTION,
@@ -33,6 +39,25 @@ export const VISITOR_PASS_CHOICES = Object.freeze([
     blurb: 'Three months, paid upfront.',
   }),
 ]);
+
+/**
+ * Joining on a weekly membership. Not a price and not a checkout: an app to
+ * install and an invite to open, which is the whole reason it cannot sit in
+ * the list above as though it were another button to press.
+ *
+ * The invite belongs to this club and never changes with a deploy, so it lives
+ * here rather than in settings — there is nothing for staff to keep in step.
+ */
+export const WEEKLY_MEMBERSHIP = Object.freeze({
+  kind: 'weekly_membership',
+  label: 'Weekly membership',
+  blurb: 'Ongoing, billed weekly. Set up in the FitBox app.',
+  url: 'https://links.fitbox.iq/invites/register/0545',
+  steps: Object.freeze([
+    'Install FitBox from the App Store or Google Play.',
+    'Open the XERT invite below and register.',
+  ]),
+});
 
 /**
  * The three ways to pay, with today's prices. A pass whose discount is running
