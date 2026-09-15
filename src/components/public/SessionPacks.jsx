@@ -7,7 +7,7 @@ import { pricesComingSoon } from '@/lib/launchSettings';
 import { formatPackPrice, formatPackValidity, packCta, PRICES_COMING_SOON_LABEL } from '@/lib/products';
 
 const steps = [
-  'Purchase a session pack.',
+  'Pay for a casual visit, a Three Day Pass or three months upfront — or sign up for a membership.',
   'Book your sessions online.',
   'Train with expert coaching in a structured semi-private environment.',
 ];

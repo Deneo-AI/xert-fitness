@@ -20,7 +20,7 @@ import { activeBookingsBySession, bookingTimeConflict, classActionLabel, classIs
 import { clearPendingWebCheckout } from '@/lib/webCheckoutRecovery';
 
 const nativeSteps = [
-  'Purchase a session pack.',
+  'Pay for a casual visit, a Three Day Pass or three months upfront — or sign up for a membership.',
   'Book your sessions online.',
   'Train with expert coaching in a structured semi-private environment.',
 ];
