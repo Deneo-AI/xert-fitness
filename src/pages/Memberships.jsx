@@ -96,9 +96,22 @@ export default function Memberships() {
                 {WEEKLY_MEMBERSHIP.label}
               </h2>
               <p className="mt-1 font-body text-sm text-xert-pale/60">{WEEKLY_MEMBERSHIP.blurb}</p>
-              <ol className="mt-3 space-y-1">
+              <ol className="mt-3 space-y-2">
                 {WEEKLY_MEMBERSHIP.steps.map((step, index) => (
-                  <li key={step} className="font-body text-sm text-xert-pale/65">{index + 1}. {step}</li>
+                  <li key={step} className="font-body text-sm text-xert-pale/65">
+                    {index + 1}. {step}
+                    {index === 0 && (
+                      <span className="mt-2 flex flex-wrap gap-2">
+                        {WEEKLY_MEMBERSHIP.stores.map(store => (
+                          <a key={store.platform} href={store.url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center gap-1.5 border border-xert-steel/30 px-3 font-body text-xs text-xert-pale/80 transition-colors hover:border-xert-steel hover:text-xert-offwhite">
+                            {store.label}
+                            <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                          </a>
+                        ))}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ol>
               <a href={WEEKLY_MEMBERSHIP.url} target="_blank" rel="noopener noreferrer"

@@ -57,6 +57,21 @@ export const WEEKLY_MEMBERSHIP = Object.freeze({
     'Install FitBox from the App Store or Google Play.',
     'Open the XERT invite and register.',
   ]),
+  // Step one is "install the app", so it has to be one tap rather than a name
+  // to go and search for — a store search for "fitbox" returns several
+  // unrelated apps, and installing the wrong one wastes the whole attempt.
+  stores: Object.freeze([
+    Object.freeze({
+      platform: 'ios',
+      label: 'App Store',
+      url: 'https://apps.apple.com/au/app/fitbox/id1462002702',
+    }),
+    Object.freeze({
+      platform: 'android',
+      label: 'Google Play',
+      url: 'https://play.google.com/store/apps/details?id=com.wa.fitbox',
+    }),
+  ]),
 });
 
 /**

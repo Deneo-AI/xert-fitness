@@ -132,6 +132,31 @@ test('a weekly membership is offered too, and sends people to FitBox', () => {
   assert.ok(!visitorPassChoices({}).some(choice => choice.kind === WEEKLY_MEMBERSHIP.kind));
 });
 
+test('installing FitBox is one tap, on either phone', () => {
+  // "Search the store for fitbox" is not an instruction: several unrelated
+  // apps answer to that name, and installing the wrong one wastes the attempt.
+  const platforms = WEEKLY_MEMBERSHIP.stores.map(store => store.platform);
+  assert.deepEqual(platforms.sort(), ['android', 'ios']);
+  const byPlatform = Object.fromEntries(
+    WEEKLY_MEMBERSHIP.stores.map(store => [store.platform, store]));
+  assert.match(byPlatform.ios.url, /^https:\/\/apps\.apple\.com\/.*\/id\d+$/);
+  assert.match(byPlatform.android.url, /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[\w.]+$/);
+  for (const store of WEEKLY_MEMBERSHIP.stores) assert.ok(store.label, store.platform);
+});
+
+test('both store links are offered wherever the membership is', () => {
+  for (const file of [
+    '../src/pages/Memberships.jsx',
+    '../src/components/public/VisitorPassChoices.jsx',
+  ]) {
+    const source = read(file);
+    assert.match(source, /WEEKLY_MEMBERSHIP\.stores\.map/, file);
+    // They sit on step one, which is the step they answer.
+    assert.match(source, /index === 0 && \(/, file);
+    assert.match(source, /rel="noopener noreferrer"/, file);
+  }
+});
+
 test('the FitBox invite opens safely in a new tab, not as a pass link', () => {
   const component = read('../src/components/public/VisitorPassChoices.jsx');
   assert.match(component, /href=\{WEEKLY_MEMBERSHIP\.url\}/);
