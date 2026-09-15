@@ -64,7 +64,7 @@ struct AccountView: View {
                             eyebrow: store.isSignedIn ? "XERT Member" : "Train With XERT",
                             title: store.isSignedIn ? "Your XERT." : "Join XERT.",
                             subtitle: store.isSignedIn
-                                ? "Your credits, bookings, training goals and account controls in one place."
+                                ? "Your bookings, training goals and account controls in one place."
                                 : "Create your member account to book coached sessions, purchase packs and train toward shared events.",
                             badge: store.isSignedIn
                                 ? accountHeroBadge(timeline: timeline)
@@ -393,26 +393,24 @@ struct AccountView: View {
         .accessibilityElement(children: .combine)
     }
 
+    // Nothing sells session packs any more, so this is no longer a shop. The
+    // wallet is kept for the one person it still matters to: somebody who paid
+    // for credits before packs were retired and can still see what they hold.
+    private var hasLegacyCredits: Bool { store.creditTotal > 0 }
+
     private var membershipSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 16) {
                 signedInSummary
-                creditSummary
 
-                Divider()
-                    .overlay(Color.xertMuted.opacity(0.35))
+                if hasLegacyCredits {
+                    creditSummary
 
-                creditBatchWallet
+                    Divider()
+                        .overlay(Color.xertMuted.opacity(0.35))
 
-                Button {
-                    guard let url = URL(string: "xertfitness://booking/packs") else { return }
-                    openURL(url)
-                } label: {
-                    Label("Buy session packs", systemImage: "plus.circle.fill")
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                    creditBatchWallet
                 }
-                .buttonStyle(.xertPrimary)
-                .accessibilityHint("Opens session packs on the Book page")
             }
             .padding(XertSpace.lg)
             .xertCardStyle()
@@ -420,7 +418,7 @@ struct AccountView: View {
             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             .listRowSeparator(.hidden)
         } header: {
-            Text("Session credits & packs").xertEyebrow()
+            Text(hasLegacyCredits ? "Membership & remaining credits" : "Membership").xertEyebrow()
         }
     }
 

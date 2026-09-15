@@ -40,10 +40,12 @@ test('web and native purchase surfaces fail closed before checkout', async () =>
 
   assert.match(nativeModels, /struct PublicPlatformSettings[\s\S]*let payments_enabled: Bool/);
   assert.match(nativeAPI, /func publicPlatformSettings[\s\S]*payments_enabled/);
+  // The store still fails closed, but the member app has no pack surface left
+  // to gate — the same stronger guarantee the web now has.
   assert.match(nativeStore, /sessionPackPaymentsEnabled = false/);
   assert.match(nativeStore, /guard sessionPackPaymentsEnabled else/);
-  assert.match(nativeBooking, /disabled\(!store\.sessionPackPaymentsEnabled/);
-  assert.match(nativeBooking, /Pack purchases are paused/);
+  assert.ok(!/sessionPackPaymentsEnabled/.test(nativeBooking));
+  assert.ok(!/Pack purchases are paused/.test(nativeBooking));
 });
 
 test('owner activation requires a fresh server preflight and an explicit confirmation', async () => {

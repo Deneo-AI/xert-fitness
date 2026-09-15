@@ -5,7 +5,6 @@ enum MemberLaunchGuideState: Equatable {
     case checking
     case retry
     case completeReadiness
-    case chooseAccess
     case bookFirstClass
     case enableReminder(bookingID: UUID)
     case activated(bookingID: UUID)
@@ -16,19 +15,21 @@ enum MemberLaunchGuideState: Equatable {
     }
 }
 
+// A ready member with nothing booked used to be told to go and buy a session
+// pack. Credits are retired, so that step could never be completed and never
+// advanced: the guide parked every one of them on "choose your session access"
+// permanently. What they actually need next is to book a class — the booking
+// page is where paying comes up, and it knows the current options.
 enum MemberLaunchGuideResolver {
     static func resolve(
         isSignedIn: Bool,
         onboardingLoaded: Bool,
         readinessComplete: Bool,
-        creditBalanceLoaded: Bool,
-        creditTotal: Int,
         bookingsLoaded: Bool,
         nextActiveBookingID: UUID?,
         nextConfirmedBookingID: UUID?,
         classRemindersEnabled: Bool,
         onboardingUnavailable: Bool,
-        creditsUnavailable: Bool,
         bookingsUnavailable: Bool
     ) -> MemberLaunchGuideState {
         guard isSignedIn else { return .signIn }
@@ -43,9 +44,6 @@ enum MemberLaunchGuideResolver {
             }
             return .activated(bookingID: nextActiveBookingID)
         }
-        guard !creditsUnavailable else { return .retry }
-        guard creditBalanceLoaded else { return .checking }
-        guard creditTotal > 0 else { return .chooseAccess }
         return .bookFirstClass
     }
 }

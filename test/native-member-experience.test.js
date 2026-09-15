@@ -15,9 +15,6 @@ test('native booking keeps discovery fast, honest and operable at large text siz
   assert.match(body, /let activeBookings = BookingItem\.activeBySession\(store\.bookings\)/);
   assert.doesNotMatch(source, /private var visibleSessions/);
   assert.doesNotMatch(source, /private var activeBookings/);
-  assert.match(source, /Checking secure checkout availability/);
-  assert.match(source, /Checkout status is unavailable/);
-  assert.match(source, /Loading session packs/);
   assert.match(source, /Loading upcoming classes/);
   assert.ok((source.match(/ViewThatFits\(in: \.horizontal\)/g) || []).length >= 3);
   assert.match(source, /hasBookingMutation = store\.bookingSessionID != nil \|\| store\.cancellingBookingID != nil/);

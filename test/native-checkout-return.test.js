@@ -26,11 +26,16 @@ test('native checkout requests the bounded iOS return target', () => {
   assert.doesNotMatch(checkout, /success_url|cancel_url/);
 });
 
-test('native checkout reuses an attempt after API failure and clears it after handoff', () => {
-  assert.match(booking, /@State private var checkoutAttemptIDs: \[String: UUID\] = \[:\]/);
-  assert.match(booking, /checkoutAttemptIDs\[product\.id\] \?\? UUID\(\)/);
-  assert.match(booking, /checkoutURL\([\s\S]*for: product,[\s\S]*attemptID: checkoutAttemptID,[\s\S]*activationSessionID:/);
-  assert.match(booking, /if let url[\s\S]*checkoutAttemptIDs\[product\.id\] = nil[\s\S]*checkoutBrowser\.start/);
+test('the member app no longer starts a pack checkout at all', () => {
+  // The idempotent-attempt machinery below guarded a purchase the app can no
+  // longer make: the pack shop went with the credits it sold. The service
+  // layer stays intact, but nothing in the member UI can reach it.
+  for (const pattern of [
+    /checkoutAttemptIDs/, /checkoutProductID/, /checkoutBrowser/, /checkoutURL\(/,
+    /session pack/i, /credit balance/i, /Buy Session Packs/i, /Confirming purchase/,
+  ]) {
+    assert.ok(!pattern.test(booking), `BookingView still matches ${pattern}`);
+  }
 });
 
 test('native checkout stays inside a trusted authenticated browser session', () => {
@@ -38,10 +43,6 @@ test('native checkout stays inside a trusted authenticated browser session', () 
   assert.match(browser, /callbackURLScheme: "xertfitness"/);
   assert.match(browser, /CheckoutDeepLink\.status\(from: callbackURL\) != nil/);
   assert.match(browser, /prefersEphemeralWebBrowserSession = false/);
-  assert.match(booking, /@StateObject private var checkoutBrowser = CheckoutBrowser\(\)/);
-  assert.match(booking, /@State private var checkoutProductID: String\?/);
-  assert.match(booking, /checkoutBrowser\.start\(url: url\)/);
-  assert.doesNotMatch(booking, /openURL\(url\)/);
   assert.match(root, /publisher\(for: \.xertCheckoutCallback\)[\s\S]*handleOpenURL\(url, source: \.authenticatedBrowser\)/);
 });
 
@@ -91,8 +92,6 @@ test('native app polls bounded order and credit state while Stripe fulfilment se
   assert.match(pendingStore, /let checkoutSessionID: String\?/);
   assert.match(pendingStore, /CheckoutSessionIdentity\.normalize\(callbackSessionID\)/);
   assert.match(pendingStore, /now\.timeIntervalSince\(checkout\.startedAt\) <= maximumAge/);
-  assert.match(booking, /Confirming purchase\.\.\./);
-  assert.match(booking, /Purchase confirmation is taking longer than usual/);
   assert.match(swiftTests, /testCheckoutReconciliationRequiresThePaidOrdersFulfillmentBatch/);
   assert.match(swiftTests, /testCheckoutReconciliationUsesTheExactStripeSessionAndClosesTerminalStates/);
   assert.match(swiftTests, /creditBatch\(remaining: 0, orderID: newOrderID\)/);

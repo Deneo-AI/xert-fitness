@@ -30,20 +30,24 @@ test('returns no warning when active credits are outside the window or never exp
   ], NOW), null);
 });
 
-test('web and native member homes expose an actionable expiry warning', () => {
+test('the expiry warning survives only where a legacy balance is still shown', () => {
   const account = readFileSync(new URL('../src/pages/Account.jsx', import.meta.url), 'utf8');
   const home = readFileSync(new URL('../ios/XertFitnessApp/XertFitnessApp/Views/HomeView.swift', import.meta.url), 'utf8');
   const models = readFileSync(new URL('../ios/XertFitnessApp/XertFitnessApp/Models.swift', import.meta.url), 'utf8');
 
+  // Somebody who bought credits before packs were retired can still see them,
+  // and still needs to know when they lapse.
   assert.match(account, /summarizeExpiringCredits/);
   assert.match(account, /expiringCredits\.daysRemaining/);
+  assert.match(account, /Book A Class/);
   assert.match(models, /Swift\.max\(1, Int\(ceil\(/);
   assert.doesNotMatch(models, /(?<!Swift\.)\bmax\s*\(/);
-  assert.match(account, /Book A Class/);
-  assert.match(home, /creditExpirySection/);
-  assert.match(home, /Credits Expiring Soon/);
-  assert.match(home, /onNavigate\(\.booking\)/);
   assert.match(models, /expirySummary\([\s\S]*windowDays: Int = 7/);
+
+  // The phone home screen chased every member about credits whether or not
+  // they had any, and nothing redeems one, so that warning is gone.
+  assert.ok(!/Credits Expiring Soon/.test(home));
+  assert.ok(!/creditExpirySection/.test(home));
 });
 
 test('admin follow-up paths prioritize aggregate expiring-credit data without member leakage', () => {

@@ -25,17 +25,19 @@ test('native public pricing settings fail closed and gate checkout with all thre
   assert.match(store, /guard !sessionPackPricesComingSoon else \{[\s\S]*Checkout stays closed/);
 });
 
-test('every native member pack surface hides amount text and accessibility while pricing is pending', async () => {
+test('no native member surface shows a pack price, because none shows a pack', async () => {
   const [booking, home] = await Promise.all([
     read('../ios/XertFitnessApp/XertFitnessApp/Views/BookingView.swift'),
     read('../ios/XertFitnessApp/XertFitnessApp/Views/HomeView.swift'),
   ]);
 
-  assert.doesNotMatch(booking, /product\.displayPrice/);
-  assert.doesNotMatch(home, /product\.displayPrice/);
-  assert.match(booking, /memberPriceLabel\(for: product\)/);
-  assert.match(booking, /accessibilityLabel\("\\\(product\.name\), \\\(product\.sessionsCount\) sessions, \\\(memberPriceLabel\(for: product\)\)"\)/);
-  assert.match(booking, /else if store\.sessionPackPricesComingSoon[\s\S]*Pack pricing is coming soon/);
-  assert.match(booking, /disabled\(!store\.sessionPackPaymentsEnabled/);
-  assert.match(home, /product\.memberPriceLabel\(pricesComingSoon: store\.sessionPackPricesComingSoon\)/);
+  // Hiding the amount behind a flag was the old protection. Removing the shop
+  // is a stronger one: there is no price to leak and no button to press.
+  for (const [name, source] of [['BookingView', booking], ['HomeView', home]]) {
+    assert.ok(!/displayPrice/.test(source), `${name} still renders a pack price`);
+    assert.ok(!/memberPriceLabel/.test(source), `${name} still renders a pack price label`);
+    assert.ok(!/sessionPackPricesComingSoon/.test(source), `${name} still reads the pricing flag`);
+    assert.ok(!/sessionPackPaymentsEnabled/.test(source), `${name} still gates a pack purchase`);
+    assert.ok(!/session pack/i.test(source), `${name} still mentions session packs`);
+  }
 });

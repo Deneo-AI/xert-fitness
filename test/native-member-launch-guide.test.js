@@ -18,7 +18,6 @@ test('native home presents one state-derived member launch step immediately afte
   for (const state of [
     'signIn',
     'completeReadiness',
-    'chooseAccess',
     'bookFirstClass',
     'enableReminder',
     'activated',
@@ -26,7 +25,12 @@ test('native home presents one state-derived member launch step immediately afte
     assert.match(resolver, new RegExp(`case ${state}`));
   }
   assert.match(resolver, /if let nextActiveBookingID[\s\S]*return \.activated/);
-  assert.match(resolver, /guard creditTotal > 0 else \{ return \.chooseAccess \}/);
+  // The guide used to gate the last step on having credits, which nothing can
+  // grant any more — so every ready member parked on "choose your session
+  // access" for good. A ready member with nothing booked now goes to booking.
+  assert.ok(!/chooseAccess/.test(resolver));
+  assert.ok(!/creditTotal/.test(resolver));
+  assert.match(resolver, /guard bookingsLoaded else \{ return \.checking \}[\s\S]*return \.bookFirstClass/);
 });
 
 test('launch guide keeps actions typed, accessible and explicit', async () => {
@@ -36,7 +40,6 @@ test('launch guide keeps actions typed, accessible and explicit', async () => {
   ]);
 
   assert.match(root, /onOpenRoute: \{ openMemberRoute\(\$0, source: \.content\) \}/);
-  assert.match(home, /onOpenRoute\(\.sessionPacks\)/);
   assert.match(home, /onOpenRoute\(\.upcomingBookings\(bookingID\)\)/);
   assert.match(home, /store\.setClassRemindersEnabled\(true\)/);
   assert.match(home, /ViewThatFits\(in: \.horizontal\)/);

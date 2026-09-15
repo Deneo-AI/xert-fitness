@@ -4,7 +4,6 @@ struct BookingView: View {
     @EnvironmentObject private var store: XertStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.openURL) private var openURL
-    @StateObject private var checkoutBrowser = CheckoutBrowser()
     @State private var activeSheet: BookingSheet?
     @State private var expandedSessionIDs: Set<UUID> = []
     @State private var classSearch = ""
@@ -12,9 +11,6 @@ struct BookingView: View {
     @State private var classFit: ClassSessionFit = .all
     @State private var classCalendarMonth = Date()
     @State private var selectedClassDay: Date?
-    @State private var checkoutProductID: String?
-    @State private var checkoutAttemptIDs: [String: UUID] = [:]
-    @State private var checkoutErrorMessage: String?
     @State private var handledRouteSequence: UInt = 0
     let route: XertMemberRoute
     let routeSequence: UInt
@@ -22,12 +18,11 @@ struct BookingView: View {
     let firstClassActivation: XertFirstClassActivation?
     let onRequireSignInForClass: (UUID) -> Void
     let onBookingNeedsCredits: (UUID) -> Void
-    let onChooseCreditsForClass: (UUID) -> Void
     let onCheckoutStarted: () -> Void
     let onBookingCompleted: (UUID) -> Void
 
     private enum ScrollTarget: Hashable {
-        case credits, packs, session(UUID)
+        case session(UUID)
     }
 
     var body: some View {
@@ -59,8 +54,6 @@ struct BookingView: View {
 
                     noticeSections
                     if store.platformProvider.provider == .native {
-                        creditsSection
-                        packsSection
                         classDiscoverySection
                         classCalendarSection
                         classesSection(
@@ -110,14 +103,6 @@ struct BookingView: View {
                         .environmentObject(store)
                     }
                 }
-                .alert("Secure Checkout", isPresented: Binding(
-                get: { checkoutErrorMessage != nil },
-                set: { if !$0 { checkoutErrorMessage = nil } }
-                )) {
-                Button("OK") { checkoutErrorMessage = nil }
-                } message: {
-                Text(checkoutErrorMessage ?? "")
-                }
             }
         }
     }
@@ -128,10 +113,10 @@ struct BookingView: View {
             handledRouteSequence = routeSequence
             return
         }
+        // The pack shop and its purchase confirmation are gone, so a route
+        // aiming at either has nothing left to scroll to.
         let target: ScrollTarget
         switch route {
-        case .sessionPacks: target = .packs
-        case .purchaseConfirmation: target = .credits
         case .classSession(let sessionID):
             guard store.sessions.contains(where: { $0.id == sessionID }) else { return }
             classSearch = ""
@@ -218,95 +203,17 @@ struct BookingView: View {
             .listRowBackground(Color.xertInk)
             .listRowSeparatorTint(Color.xertSteel.opacity(0.18))
         }
-        if !store.unavailableDataSources.isDisjoint(with: [.products, .sessions, .platformSettings, .credits, .bookings]) {
+        if !store.unavailableDataSources.isDisjoint(with: [.sessions, .platformSettings, .bookings]) {
             Section {
-                DataAvailabilityNotice(sources: [.products, .sessions, .platformSettings, .credits, .bookings])
+                DataAvailabilityNotice(sources: [.sessions, .platformSettings, .bookings])
             }
             .listRowBackground(Color.xertInk)
             .listRowSeparatorTint(Color.xertSteel.opacity(0.18))
         }
     }
 
-    private var creditsSection: some View {
-        Section {
-            if store.isSignedIn {
-                HStack {
-                    Text("Available credits")
-                        .foregroundStyle(Color.xertOffWhite)
-                    Spacer()
-                    Text(bookingCreditValue)
-                        .foregroundStyle(.xertSteel)
-                        .fontWeight(.bold)
-                }
-                if let status = bookingCreditStatus {
-                    HStack(spacing: 8) {
-                        if bookingCreditIsInitiallyLoading {
-                            ProgressView()
-                                .tint(.xertSteel)
-                        } else {
-                            Image(systemName: store.unavailableDataSources.contains(.credits)
-                                ? "wifi.exclamationmark"
-                                : "clock.arrow.circlepath")
-                        }
-                        Text(status)
-                    }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(bookingCreditStatusColor)
-                    .accessibilityElement(children: .combine)
-                }
-                if store.isReconcilingCheckout {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                            .tint(.xertSteel)
-                        Text("Confirming purchase...")
-                            .foregroundStyle(Color.xertPale)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Confirming your session pack purchase")
-                } else if store.isCheckoutConfirmationPending {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Purchase confirmation is taking longer than usual.", systemImage: "clock.arrow.circlepath")
-                            .foregroundStyle(Color.xertPale)
-                        Button("Check purchase again") {
-                            Task { await store.reconcilePendingCheckout() }
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.xertSteel)
-                    }
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Sign in to book classes and buy packs.")
-                        .foregroundStyle(Color.xertMuted)
-                    Button("Sign in or create an account") {
-                        onNavigate(.account)
-                    }
-                    .buttonStyle(.xertPrimary)
-                }
-                .padding(.vertical, 4)
-            }
-        } header: {
-            Text("Credits").xertEyebrow()
-        }
-        .id(ScrollTarget.credits)
-        .listRowBackground(Color.xertInk)
-        .listRowSeparatorTint(Color.xertSteel.opacity(0.18))
-    }
-
-    private var hasKnownCreditBalance: Bool {
-        store.creditBalanceLoaded
-    }
-
-    private var bookingCreditIsInitiallyLoading: Bool {
-        !hasKnownCreditBalance
-            && !store.unavailableDataSources.contains(.credits)
-            && (!store.hasBootstrapped || store.isLoading)
-    }
-
-    private var bookingCreditValue: String {
-        hasKnownCreditBalance ? "\(store.creditTotal)" : "—"
-    }
-
+    // Nothing to do with credits: these describe whether this member's own
+    // booking list is still loading or stale, and the class rows use them.
     private var memberBookingContextIsLoading: Bool {
         store.isSignedIn
             && !store.unavailableDataSources.contains(.bookings)
@@ -318,165 +225,10 @@ struct BookingView: View {
             && (store.isUsingStaleMemberData || store.unavailableDataSources.contains(.bookings))
     }
 
-    private var bookingCreditStatus: String? {
-        if store.unavailableDataSources.contains(.credits) {
-            return hasKnownCreditBalance ? "Last known balance — pull to refresh" : "Balance unavailable — pull to refresh"
-        }
-        if bookingCreditIsInitiallyLoading {
-            return "Loading your credit balance…"
-        }
-        if store.isUsingStaleMemberData {
-            return "Last synced balance"
-        }
-        return nil
-    }
-
-    private var bookingCreditStatusColor: Color {
-        if store.unavailableDataSources.contains(.credits) || store.isUsingStaleMemberData {
-            return .orange
-        }
-        return Color.xertPale
-    }
-
     private var bookingHeroBadge: String {
-        guard store.isSignedIn else { return "Your first coached session starts here" }
-        guard hasKnownCreditBalance else {
-            return store.unavailableDataSources.contains(.credits)
-                ? "Credit balance unavailable"
-                : "Checking credit balance"
-        }
-        let balance = "\(store.creditTotal) credit\(store.creditTotal == 1 ? "" : "s") available"
-        return store.unavailableDataSources.contains(.credits) || store.isUsingStaleMemberData
-            ? "\(balance) · last synced"
-            : balance
-    }
-
-    private var packsSection: some View {
-        Section {
-            if !store.paymentAvailabilityLoaded {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .tint(.xertSteel)
-                    Text("Checking secure checkout availability…")
-                        .foregroundStyle(Color.xertPale)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Checking secure checkout availability")
-            } else if store.unavailableDataSources.contains(.platformSettings) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Checkout status is unavailable")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.xertOffWhite)
-                        Text("Pull to refresh before buying a session pack.")
-                            .font(.caption)
-                            .foregroundStyle(Color.xertMuted)
-                    }
-                } icon: {
-                    Image(systemName: "wifi.exclamationmark")
-                        .foregroundStyle(Color.orange)
-                }
-                .accessibilityElement(children: .combine)
-            } else if store.sessionPackPricesComingSoon {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Pack pricing is coming soon")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.xertOffWhite)
-                        Text("Explore the session packs now. Checkout stays closed until XERT publishes the final prices.")
-                            .font(.caption)
-                            .foregroundStyle(Color.xertMuted)
-                    }
-                } icon: {
-                    Image(systemName: "clock")
-                        .foregroundStyle(Color.xertSteel)
-                }
-                .accessibilityElement(children: .combine)
-            } else if !store.sessionPackPaymentsEnabled {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Pack purchases are paused")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.xertOffWhite)
-                        Text("Explore packs now. Secure checkout will reopen after XERT completes its payment launch checks.")
-                            .font(.caption)
-                            .foregroundStyle(Color.xertMuted)
-                    }
-                } icon: {
-                    Image(systemName: "creditcard")
-                        .foregroundStyle(Color.xertSteel)
-                }
-                .accessibilityElement(children: .combine)
-            }
-
-            if store.products.isEmpty {
-                if store.isLoading || !store.hasBootstrapped {
-                    bookingLoadingRow("Loading session packs…")
-                } else if store.unavailableDataSources.contains(.products) {
-                    bookingUnavailableRow("Session packs")
-                } else {
-                    Text("No session packs are available yet.")
-                        .foregroundStyle(Color.xertMuted)
-                }
-            } else {
-                ForEach(store.products) { product in
-                    Button {
-                        guard store.isSignedIn else {
-                            onNavigate(.account)
-                            return
-                        }
-                        guard checkoutProductID == nil, !checkoutBrowser.isPresenting else { return }
-                        checkoutProductID = product.id
-                        let checkoutAttemptID = checkoutAttemptIDs[product.id] ?? UUID()
-                        checkoutAttemptIDs[product.id] = checkoutAttemptID
-                        Task {
-                            if let url = await store.checkoutURL(
-                                for: product,
-                                attemptID: checkoutAttemptID,
-                                activationSessionID: firstClassActivation?.sessionID
-                            ) {
-                                onCheckoutStarted()
-                                checkoutAttemptIDs[product.id] = nil
-                                checkoutBrowser.start(url: url) { result in
-                                    checkoutProductID = nil
-                                    switch result {
-                                    case .success(let callbackURL):
-                                        NotificationCenter.default.post(name: .xertCheckoutCallback, object: callbackURL)
-                                    case .failure(.cancelled):
-                                        Task { await store.reconcilePendingCheckout() }
-                                    case .failure(let error):
-                                        checkoutErrorMessage = error.localizedDescription
-                                        Task { await store.reconcilePendingCheckout() }
-                                    }
-                                }
-                            } else {
-                                checkoutProductID = nil
-                            }
-                        }
-                    } label: {
-                        ZStack(alignment: .trailing) {
-                            productSummary(product)
-                                .padding(.trailing, checkoutProductID == product.id ? 34 : 0)
-                            if checkoutProductID == product.id {
-                                ProgressView()
-                                    .tint(Color.xertSteel)
-                                    .accessibilityHidden(true)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .disabled(!store.sessionPackPaymentsEnabled || checkoutProductID != nil || checkoutBrowser.isPresenting)
-                    .accessibilityLabel("\(product.name), \(product.sessionsCount) sessions, \(memberPriceLabel(for: product))")
-                    .accessibilityValue(checkoutProductID == product.id ? "Opening secure checkout" : "")
-                    .accessibilityHint(sessionPackAccessibilityHint)
-                }
-            }
-        } header: {
-            Text(store.sessionPackPaymentsEnabled ? "Buy Session Packs" : "Session Packs").xertEyebrow()
-        }
-        .id(ScrollTarget.packs)
-        .listRowBackground(Color.xertInk)
-        .listRowSeparatorTint(Color.xertSteel.opacity(0.18))
+        store.isSignedIn
+            ? "Pick a class and take your place"
+            : "Your first coached session starts here"
     }
 
     private func classesSection(
@@ -647,7 +399,7 @@ struct BookingView: View {
             if firstClassActivation?.matches(session.id) == true,
                firstClassActivation?.stage == .readyToBook,
                booking == nil {
-                Label("Credits ready — book your place below", systemImage: "checkmark.circle.fill")
+                Label("Ready — book your place below", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.green)
                     .accessibilityAddTraits(.isHeader)
@@ -672,46 +424,6 @@ struct BookingView: View {
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-    }
-
-    @ViewBuilder
-    private func productSummary(_ product: Product) -> some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 8) {
-                productDetails(product)
-                Text(memberPriceLabel(for: product))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.xertSteel)
-            }
-        } else {
-            HStack {
-                productDetails(product)
-                Spacer()
-                Text(memberPriceLabel(for: product))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.xertSteel)
-            }
-        }
-    }
-
-    private func memberPriceLabel(for product: Product) -> String {
-        product.memberPriceLabel(pricesComingSoon: store.sessionPackPricesComingSoon)
-    }
-
-    private var sessionPackAccessibilityHint: String {
-        if store.sessionPackPricesComingSoon { return "Pricing and checkout are coming soon" }
-        if !store.sessionPackPaymentsEnabled { return "Session pack checkout is paused" }
-        return store.isSignedIn ? "Opens secure checkout" : "Opens member sign in"
-    }
-
-    private func productDetails(_ product: Product) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(product.name)
-                .foregroundStyle(Color.xertOffWhite)
-            Text("\(product.sessionsCount) sessions")
-                .font(.caption)
-                .foregroundStyle(Color.xertMuted)
-        }
     }
 
     @ViewBuilder
@@ -872,22 +584,6 @@ struct BookingView: View {
                 .buttonStyle(.xertGhost)
                 .disabled(store.isLoading)
                 .accessibilityHint("Refreshes your bookings before another place can be requested")
-            }
-        } else if firstClassActivation?.matches(session.id) == true,
-                  firstClassActivation?.stage == .needsCredits {
-            VStack(alignment: .leading, spacing: 10) {
-                Label("You need a session credit to book this class.", systemImage: "ticket")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    onChooseCreditsForClass(session.id)
-                } label: {
-                    Label("Choose a session pack", systemImage: "creditcard")
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                }
-                .buttonStyle(.xertPrimary)
-                .accessibilityHint("Keeps this class selected while you choose credits")
             }
         } else if !store.bookingAvailabilityLoaded {
             Label("Checking booking availability…", systemImage: "arrow.clockwise")

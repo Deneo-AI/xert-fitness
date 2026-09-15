@@ -213,7 +213,6 @@ struct RootView: View {
                 firstClassActivation: firstClassActivation,
                 onRequireSignInForClass: requireSignInForClass,
                 onBookingNeedsCredits: showCreditsNeeded,
-                onChooseCreditsForClass: chooseCredits,
                 onCheckoutStarted: markActivationCheckoutStarted,
                 onBookingCompleted: completeFirstClassActivation
             )
@@ -777,11 +776,6 @@ struct RootView: View {
     private func showCreditsNeeded(_ sessionID: UUID) {
         firstClassActivation = XertFirstClassActivation(sessionID: sessionID, stage: .needsCredits)
         XertHaptics.play(.warning)
-    }
-
-    private func chooseCredits(_ sessionID: UUID) {
-        firstClassActivation = XertFirstClassActivation(sessionID: sessionID, stage: .choosingCredits)
-        navigation.open(.sessionPacks, source: .content)
     }
 
     private func markActivationCheckoutStarted() {

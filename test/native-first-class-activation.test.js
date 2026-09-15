@@ -19,13 +19,19 @@ test('native first-class activation retains exact intent through auth and checko
   assert.match(root, /pendingProtectedNavigation = XertNavigationIntent\([\s\S]*\.classSession\(sessionID\)/);
   assert.match(root, /resumeFirstClassAfterCheckout[\s\S]*\.readyToBook[\s\S]*\.classSession\(sessionID\)/);
   assert.match(checkout, /let activationSessionID: UUID\?/);
-  assert.match(booking, /activationSessionID: firstClassActivation\?\.sessionID/);
-  assert.match(booking, /You need a session credit to book this class/);
-  assert.match(booking, /Choose a session pack/);
-  assert.match(booking, /Credits ready — book your place below/);
+  // The checkout leg of this journey is gone with the pack shop: keeping the
+  // class in mind through sign-in is what still matters.
+  assert.match(booking, /firstClassActivation\?\.matches\(session\.id\) == true/);
+  assert.match(booking, /firstClassActivation\?\.stage == \.readyToBook/);
+  assert.match(booking, /Ready — book your place below/);
+  assert.ok(!/You need a session credit to book this class/.test(booking));
+  assert.ok(!/Choose a session pack/.test(booking));
   assert.doesNotMatch(root, /resumeFirstClassAfterCheckout[\s\S]{0,800}store\.book\(/);
 });
 
+// Dormant rather than dead: the server only raises NO_CREDITS while class
+// credits are switched on. If the club ever turns packs back on, a refusal
+// must still land on the class it belongs to, not as a global error banner.
 test('native no-credit booking is contextual instead of a global error', async () => {
   const [store, booking] = await Promise.all([
     native('Store/XertStore.swift'),

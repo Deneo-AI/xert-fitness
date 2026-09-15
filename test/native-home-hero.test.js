@@ -49,7 +49,7 @@ test('native hero stays functional and leaves member operations directly below i
   assert.match(home, /onBook: \{ onNavigate\(\.booking\) \}/);
   assert.match(home, /onEvents: \{ onNavigate\(\.events\) \}/);
   assert.match(home, /onRefresh: \{ Task \{ await store\.refresh\(\) \} \}/);
-  assert.match(home, /NativeHomeHero[\s\S]*NativeValueStrip[\s\S]*announcementsSection[\s\S]*NativeTrainingIdentity[\s\S]*todayTrainingSection[\s\S]*creditExpirySection/);
+  assert.match(home, /NativeHomeHero[\s\S]*NativeValueStrip[\s\S]*announcementsSection[\s\S]*NativeTrainingIdentity[\s\S]*todayTrainingSection/);
   assert.match(home, /\.ignoresSafeArea\(edges: \.top\)/);
   assert.match(home, /\.toolbar\(\.hidden, for: \.navigationBar\)/);
 });

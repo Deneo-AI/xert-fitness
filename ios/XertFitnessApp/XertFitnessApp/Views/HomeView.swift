@@ -57,12 +57,10 @@ struct HomeView: View {
                             announcementsSection
                             NativeTrainingIdentity(onExplore: { onNavigate(.explore) })
                             todayTrainingSection
-                            creditExpirySection
                             if !store.isSignedIn { nextUpSection }
                             quickActions
                             glanceSection
                             nextEventSection
-                            sessionPacksSection
                         }
                         .padding()
                         .padding(.bottom, XertScreenLayout.scrollEndClearance)
@@ -148,14 +146,11 @@ struct HomeView: View {
             isSignedIn: store.isSignedIn,
             onboardingLoaded: store.onboardingLoaded,
             readinessComplete: store.memberOnboarding?.is_complete == true,
-            creditBalanceLoaded: store.creditBalanceLoaded,
-            creditTotal: store.creditTotal,
             bookingsLoaded: bookingsLoaded,
             nextActiveBookingID: activeBookings.first?.booking_id,
             nextConfirmedBookingID: nextConfirmedBookingID,
             classRemindersEnabled: store.classRemindersEnabled,
             onboardingUnavailable: store.unavailableDataSources.contains(.onboarding),
-            creditsUnavailable: store.unavailableDataSources.contains(.credits),
             bookingsUnavailable: store.unavailableDataSources.contains(.bookings)
         )
     }
@@ -170,8 +165,6 @@ struct HomeView: View {
             Task { await store.refresh() }
         case .completeReadiness:
             showingMemberReadiness = true
-        case .chooseAccess:
-            onOpenRoute(.sessionPacks)
         case .bookFirstClass:
             onOpenRoute(.booking)
         case .enableReminder:
@@ -196,37 +189,14 @@ struct HomeView: View {
     private var dashboardMembershipSummary: some View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 12) {
-                dashboardCreditSummary
                 dashboardNoticeButton
             }
         } else {
             HStack(alignment: .center, spacing: 12) {
-                dashboardCreditSummary
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
                 dashboardNoticeButton
             }
         }
-    }
-
-    private var dashboardCreditSummary: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("Session credits")
-                .xertEyebrow()
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Text(dashboardCreditValue)
-                    .xertDisplay(36)
-                Text(store.creditTotal == 1 ? "credit" : "credits")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.xertPale)
-            }
-            Text(dashboardCreditCaption)
-                .font(.caption)
-                .foregroundStyle(dashboardCreditCaptionColor)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Session credits. \(dashboardCreditAccessibilityLabel)")
     }
 
     @ViewBuilder
@@ -482,47 +452,6 @@ struct HomeView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var dashboardCreditValue: String {
-        let hasNoKnownBalance = !store.creditBalanceLoaded
-        if hasNoKnownBalance
-            && (!store.hasBootstrapped || store.isLoading || store.unavailableDataSources.contains(.credits)) {
-            return "—"
-        }
-        return "\(store.creditTotal)"
-    }
-
-    private var dashboardCreditCaption: String {
-        if store.unavailableDataSources.contains(.credits) {
-            return store.creditBalanceLoaded ? "Last known balance" : "Balance unavailable"
-        }
-        if store.isLoading {
-            return store.creditBalanceLoaded ? "Refreshing balance…" : "Loading balance…"
-        }
-        if store.isUsingStaleMemberData {
-            return "Last synced balance"
-        }
-        if let summary = store.creditExpirySummary {
-            return "\(summary.credits) expire in \(summary.daysRemaining) day\(summary.daysRemaining == 1 ? "" : "s")"
-        }
-        return store.creditTotal == 0 ? "No credits available" : "Ready to book"
-    }
-
-    private var dashboardCreditCaptionColor: Color {
-        if store.unavailableDataSources.contains(.credits) || store.isUsingStaleMemberData {
-            return .orange
-        }
-        if store.creditExpirySummary != nil {
-            return Color(red: 224 / 255, green: 179 / 255, blue: 106 / 255)
-        }
-        return Color.xertPale
-    }
-
-    private var dashboardCreditAccessibilityLabel: String {
-        dashboardCreditValue == "—"
-            ? dashboardCreditCaption
-            : "\(store.creditTotal) available. \(dashboardCreditCaption)"
-    }
-
     private static let dashboardBookingFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -573,36 +502,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Credit expiry
-
-    @ViewBuilder
-    private var creditExpirySection: some View {
-        if let summary = store.creditExpirySummary {
-            XertSection(title: "Credits Expiring Soon") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label {
-                        Text("\(summary.credits) class credit\(summary.credits == 1 ? "" : "s") expire\(summary.credits == 1 ? "s" : "") in \(summary.daysRemaining) day\(summary.daysRemaining == 1 ? "" : "s").")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.xertOffWhite)
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(Color(red: 224 / 255, green: 179 / 255, blue: 106 / 255))
-                    }
-                    Text("Use them by \(summary.expiresAt.formatted(date: .abbreviated, time: .omitted)).")
-                        .font(.caption)
-                        .foregroundStyle(Color.xertPale)
-                    Button("Book A Class") {
-                        onNavigate(.booking)
-                    }
-                    .buttonStyle(.xertPrimary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(XertSpace.lg)
-                .xertCardStyle()
-            }
-        }
-    }
-
     // MARK: - Quick actions
 
     @ViewBuilder
@@ -650,7 +549,6 @@ struct HomeView: View {
     @ViewBuilder
     private var glanceMetrics: some View {
         MetricView(value: dashboardPublicMetricValue(store.sessions.count, source: .sessions), label: "Classes")
-        MetricView(value: dashboardCreditValue, label: "Credits")
         MetricView(value: dashboardPublicMetricValue(store.events.count, source: .events), label: "Events")
     }
 
@@ -705,7 +603,7 @@ struct HomeView: View {
                 )
             } else {
                 EmptyAction(
-                    message: "Sign in to manage bookings and credits.",
+                    message: "Sign in to manage your bookings.",
                     actionTitle: "Sign in",
                     action: { onNavigate(.account) }
                 )
@@ -778,33 +676,6 @@ struct HomeView: View {
                 Text("The event calendar is being prepared.")
                     .foregroundStyle(Color.xertPale)
             }
-        }
-    }
-
-    private var sessionPacksSection: some View {
-        XertSection(title: "Session Packs") {
-            ForEach(store.products.prefix(3)) { product in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(product.name)
-                            .font(.headline)
-                            .foregroundStyle(.xertOffWhite)
-                        Text("\(product.sessionsCount) sessions")
-                            .font(.caption)
-                            .foregroundStyle(Color.xertMuted)
-                    }
-                    Spacer()
-                    Text(product.memberPriceLabel(pricesComingSoon: store.sessionPackPricesComingSoon))
-                        .font(XertTheme.displayFont(size: 20, relativeTo: .title3))
-                        .tracking(1.0)
-                        .foregroundStyle(.xertSteel)
-                }
-                .padding(.vertical, 6)
-            }
-            Button("View session packs") {
-                onNavigate(.booking)
-            }
-            .buttonStyle(.xertGhost)
         }
     }
 
@@ -917,7 +788,6 @@ private struct MemberLaunchGuideCard: View {
         case .checking: return "Checking your member progress"
         case .retry: return "Member progress needs a refresh"
         case .completeReadiness: return "Complete member readiness"
-        case .chooseAccess: return "Choose your session access"
         case .bookFirstClass: return "Book your first class"
         case .enableReminder: return "Never miss your next class"
         case .activated: return "You're ready to train"
@@ -929,15 +799,13 @@ private struct MemberLaunchGuideCard: View {
         case .signIn:
             return "Create an account or sign in, then XERT will keep your next step here."
         case .checking:
-            return "XERT is securely loading your readiness, credits and bookings."
+            return "XERT is securely loading your readiness and bookings."
         case .retry:
             return "Some member details could not be refreshed. Your saved account remains protected."
         case .completeReadiness:
             return "Add your contact details and acknowledge the current member documents."
-        case .chooseAccess:
-            return "Choose the session pack that fits your training plan."
         case .bookFirstClass:
-            return "Your credits are ready. Choose a coached session that works for you."
+            return "Choose a coached session that works for you."
         case .enableReminder:
             return "Turn on an optional device reminder for confirmed classes."
         case .activated:
@@ -951,7 +819,6 @@ private struct MemberLaunchGuideCard: View {
         case .checking: return "Checking…"
         case .retry: return "Retry Member Progress"
         case .completeReadiness: return "Complete Readiness"
-        case .chooseAccess: return "View Session Packs"
         case .bookFirstClass: return "Browse Classes"
         case .enableReminder: return "Enable Class Reminder"
         case .activated: return "View Booking"
@@ -962,9 +829,8 @@ private struct MemberLaunchGuideCard: View {
         switch state {
         case .signIn: return "Opens secure member access"
         case .checking: return "Member progress is still loading"
-        case .retry: return "Retries readiness, credits and bookings"
+        case .retry: return "Retries readiness and bookings"
         case .completeReadiness: return "Opens your private member readiness form"
-        case .chooseAccess: return "Opens session pack options on the Book page"
         case .bookFirstClass: return "Opens class discovery on the Book page"
         case .enableReminder: return "Requests notification permission, then schedules eligible class reminders"
         case .activated: return "Opens your upcoming bookings"
@@ -977,7 +843,6 @@ private struct MemberLaunchGuideCard: View {
         case .checking: return "arrow.clockwise"
         case .retry: return "wifi.exclamationmark"
         case .completeReadiness: return "person.text.rectangle"
-        case .chooseAccess: return "creditcard"
         case .bookFirstClass: return "calendar.badge.plus"
         case .enableReminder: return "bell.badge"
         case .activated: return "checkmark.circle.fill"

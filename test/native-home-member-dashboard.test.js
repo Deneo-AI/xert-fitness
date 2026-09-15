@@ -19,7 +19,8 @@ test('signed-in members reach their operational dashboard before promotional con
     /private var memberDashboardSection: some View \{[\s\S]*if store\.isSignedIn \{[\s\S]*XertSection\(title: "Member dashboard"\)/,
   );
   assert.match(home, /if !store\.isSignedIn \{ nextUpSection \}/);
-  assert.match(home, /Text\("Session credits"\)/);
+  // The dashboard led with a credit balance; it now leads with what is live.
+  assert.ok(!/Text\("Session credits"\)/.test(home));
   assert.match(home, /if !store\.announcements\.isEmpty \{[\s\S]*Button\(action: openNoticeCenter\)/);
 });
 
@@ -67,18 +68,16 @@ test('member dashboard distinguishes loading, unavailable, stale and genuine emp
   );
 });
 
-test('credit and glance summaries never turn missing data into a false zero', async () => {
+test('glance summaries never turn missing data into a false zero', async () => {
   const home = await readFile(homeURL, 'utf8');
 
-  assert.match(
-    home,
-    /private var dashboardCreditValue: String \{[\s\S]*!store\.creditBalanceLoaded[\s\S]*unavailableDataSources\.contains\(\.credits\)[\s\S]*return "—"/,
-  );
-  assert.match(home, /store\.creditBalanceLoaded \? "Last known balance" : "Balance unavailable"/);
-  assert.match(home, /creditExpirySummary[\s\S]*expire in/);
-  assert.match(home, /MetricView\(value: dashboardCreditValue, label: "Credits"\)/);
+  // The credit tile and its "—" for an unknown balance are gone with the
+  // credits themselves; the same honesty rule still governs what is left.
+  assert.ok(!/dashboardCreditValue/.test(home));
+  assert.ok(!/Text\("Session credits"\)/.test(home));
   assert.match(
     home,
     /private func dashboardPublicMetricValue[\s\S]*publicDataUpdatedAt == nil[\s\S]*return "—"/,
   );
+  assert.match(home, /MetricView\(value: dashboardPublicMetricValue\(store\.sessions\.count, source: \.sessions\), label: "Classes"\)/);
 });

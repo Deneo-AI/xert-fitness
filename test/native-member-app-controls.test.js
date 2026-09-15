@@ -43,10 +43,14 @@ test('owner booking controls govern the native member experience and fail closed
   );
   assert.ok(sessionAction.indexOf('Manage booking') < sessionAction.indexOf('memberBookingContextIsLoading'));
   assert.ok(sessionAction.indexOf('memberBookingContextIsLoading') < sessionAction.indexOf('memberBookingContextUnavailable'));
-  assert.ok(sessionAction.indexOf('memberBookingContextUnavailable') < sessionAction.indexOf('firstClassActivation'));
+  // The activation branch that sat after these was the "you need a session
+  // credit" prompt, which no longer exists.
+  assert.ok(!sessionAction.includes('firstClassActivation'));
   assert.match(sessionAction, /memberBookingContextIsLoading[\s\S]*Checking your booking status/);
   assert.match(sessionAction, /memberBookingContextUnavailable[\s\S]*await store\.refresh\(\)[\s\S]*Retry booking status/);
-  assert.match(booking, /DataAvailabilityNotice\(sources: \[\.products, \.sessions, \.platformSettings, \.credits, \.bookings\]\)/);
+  // The booking screen no longer shows products or a balance, so warning that
+  // either is unavailable would be telling members about nothing.
+  assert.match(booking, /DataAvailabilityNotice\(sources: \[\.sessions, \.platformSettings, \.bookings\]\)/);
 
   assert.match(ownerNavigation, /case \.controls: return "Settings"/);
   assert.match(commandCentre, /Section\("Member app experience"\)/);
@@ -80,15 +84,15 @@ test('database rejects new member places while bookings are paused without block
   assert.match(nativeReadiness, /"member_booking_switch_guard"/);
 });
 
-test('booking credits distinguish unknown, loading, unavailable, stale and genuine zero balances', async () => {
+test('the booking screen no longer announces a credit balance nobody can spend', async () => {
   const booking = await read('../ios/XertFitnessApp/XertFitnessApp/Views/BookingView.swift');
 
+  // The hero used to greet every member with their balance — "0 credits
+  // available" for everyone, since nothing grants one any more.
   assert.match(booking, /badge: bookingHeroBadge/);
-  assert.match(booking, /private var hasKnownCreditBalance: Bool \{[\s\S]*store\.creditBalanceLoaded/);
-  assert.match(booking, /private var bookingCreditValue: String \{[\s\S]*hasKnownCreditBalance \? "\\\(store\.creditTotal\)" : "—"/);
-  assert.match(booking, /Credit balance unavailable/);
-  assert.match(booking, /Checking credit balance/);
-  assert.match(booking, /Last known balance — pull to refresh/);
-  assert.match(booking, /Last synced balance/);
-  assert.match(booking, /Text\(bookingCreditValue\)/);
+  assert.match(booking, /private var bookingHeroBadge: String \{[\s\S]*Pick a class and take your place/);
+  for (const gone of [
+    /hasKnownCreditBalance/, /bookingCreditValue/, /Credit balance unavailable/,
+    /Checking credit balance/, /Last known balance/, /creditTotal/,
+  ]) assert.ok(!gone.test(booking), `BookingView still matches ${gone}`);
 });

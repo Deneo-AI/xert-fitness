@@ -135,8 +135,10 @@ test('contextual member routes focus the exact native task instead of only its t
     assert.match(view, /let routeSequence: UInt/);
   }
   assert.match(home, /case \.notices\(let announcementID\) = route[\s\S]*showingNoticeCenter = true/);
-  assert.match(booking, /case \.sessionPacks: target = \.packs/);
-  assert.match(booking, /case \.purchaseConfirmation: target = \.credits/);
+  // The pack shop and its purchase confirmation are gone, so those two routes
+  // have nothing to scroll to and no longer claim a target.
+  assert.ok(!/target = \.packs/.test(booking));
+  assert.ok(!/target = \.credits/.test(booking));
   assert.match(booking, /case \.classSession\(let sessionID\):[\s\S]*expandedSessionIDs\.insert\(sessionID\)[\s\S]*target = \.session\(sessionID\)/);
   assert.match(booking, /\.onChange\(of: store\.sessions\) \{ _ in focusRoute\(using: proxy\) \}/);
   assert.match(booking, /\.id\(ScrollTarget\.session\(session\.id\)\)/);

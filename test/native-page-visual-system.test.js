@@ -29,12 +29,12 @@ test('feature heroes retain the real native workflows underneath', async () => {
     read('../ios/XertFitnessApp/XertFitnessApp/Views/AccountView.swift'),
   ]);
 
-  assert.match(booking, /XertPageHero[\s\S]*creditsSection[\s\S]*packsSection[\s\S]*classDiscoverySection[\s\S]*classesSection/);
+  assert.match(booking, /XertPageHero[\s\S]*classDiscoverySection[\s\S]*classesSection/);
   assert.match(booking, /\.searchable\([\s\S]*Class, coach or location/);
   assert.match(events, /XertPageHero[\s\S]*Your Training Goals[\s\S]*Calendar range/);
   assert.match(events, /Add to Calendar/);
   assert.match(account, /XertPageHero[\s\S]*signedInSections[\s\S]*signedOutSections/);
-  assert.match(account, /credits, bookings, training goals and account controls/);
+  assert.match(account, /bookings, training goals and account controls/);
 });
 
 test('all native photographic headers are bundled in the asset catalogue', async () => {
