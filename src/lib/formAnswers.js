@@ -17,6 +17,18 @@ export function answerText(value) {
   return String(value);
 }
 
+// A signature is stored as a PNG data URI. Printed as text it is several
+// hundred characters of base64 that push every other column off the screen and
+// tell nobody anything; what staff need is to see the signature.
+const IMAGE_DATA_URI = /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+
+/** The image a cell holds, or null when the answer is ordinary text. */
+export function answerImage(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.replace(/\s+/g, '');
+  return IMAGE_DATA_URI.test(trimmed) ? trimmed : null;
+}
+
 /**
  * The answers to one question, numbered by which respondent gave them.
  *

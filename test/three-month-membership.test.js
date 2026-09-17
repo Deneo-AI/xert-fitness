@@ -272,7 +272,7 @@ test('a discount is the price actually charged, and only runs when it is cheaper
 
   // Each pass reads its own columns, and falls back to its own default.
   assert.equal(visitorPassPricing('casual', {}).charge, 1560);
-  assert.equal(visitorPassPricing('three_day_pass', {}).charge, 3500);
+  assert.equal(visitorPassPricing('three_day_pass', {}).charge, 3900);
   assert.equal(visitorPassPricing('three_day_pass', { three_day_pass_price_cents: 4000 }).charge, 4000);
 
   // The page shows the saving, and the server is what actually prices it.

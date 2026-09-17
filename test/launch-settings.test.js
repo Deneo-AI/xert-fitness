@@ -32,7 +32,7 @@ test('normalizes every live platform control, including the server payment switc
     casual_visit_price_cents: 1560,
     casual_visit_discount_cents: null,
     casual_visit_discount_enabled: false,
-    three_day_pass_price_cents: 3500,
+    three_day_pass_price_cents: 3900,
     three_day_pass_discount_cents: null,
     three_day_pass_discount_enabled: false,
     three_month_price_cents: 43000,

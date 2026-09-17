@@ -19,7 +19,7 @@ test('the shared visitor page sells the three-day pass and never treats a return
       React.createElement(SupabaseAuthProvider, null, React.createElement(CasualVisit, { threeDayPass: true }))));
     const page = render('/3daypass');
     assert.match(page, /Three Day Pass/);
-    assert.match(page, /\$35\.00/);
+    assert.match(page, /\$39\.00/);
     assert.match(page, /show your receipt to the XERT team/i);
     assert.doesNotMatch(page, /three classes|from purchase/i);
     assert.match(page, /First name/);

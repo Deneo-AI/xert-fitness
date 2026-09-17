@@ -1,4 +1,7 @@
 import { normalizeProviderUrl, resolvePlatformProvider } from './platformProvider.js';
+import {
+  CASUAL_VISIT_ACTION, THREE_DAY_PASS_ACTION, THREE_MONTH_MEMBERSHIP_ACTION, visitorPass,
+} from './casualVisit.js';
 
 /**
  * Fallback opening date, used only when no admin settings row supplies one.
@@ -91,20 +94,26 @@ export function normalizeLaunchSettings(settings = {}) {
  * and genuinely cheaper, which is the same rule the database enforces.
  */
 export const VISITOR_PRICE_FIELDS = Object.freeze([
+  // Each pass's price lives with the pass itself. These used to carry their
+  // own copy of the amount, so raising the Three Day Pass to $39 in one place
+  // quietly left the other still answering $35.
   Object.freeze({
     key: 'casual', label: 'Casual visit',
     price: 'casual_visit_price_cents', discount: 'casual_visit_discount_cents',
-    enabled: 'casual_visit_discount_enabled', fallback: 1560,
+    enabled: 'casual_visit_discount_enabled',
+    fallback: visitorPass(CASUAL_VISIT_ACTION === 'casual_visit' ? 'casual' : CASUAL_VISIT_ACTION).defaultPriceCents,
   }),
   Object.freeze({
     key: 'three-day', label: 'Three Day Pass',
     price: 'three_day_pass_price_cents', discount: 'three_day_pass_discount_cents',
-    enabled: 'three_day_pass_discount_enabled', fallback: 3500,
+    enabled: 'three_day_pass_discount_enabled',
+    fallback: visitorPass(THREE_DAY_PASS_ACTION).defaultPriceCents,
   }),
   Object.freeze({
     key: 'three-month', label: 'Three month membership',
     price: 'three_month_price_cents', discount: 'three_month_discount_cents',
-    enabled: 'three_month_discount_enabled', fallback: 43000,
+    enabled: 'three_month_discount_enabled',
+    fallback: visitorPass(THREE_MONTH_MEMBERSHIP_ACTION).defaultPriceCents,
   }),
 ]);
 

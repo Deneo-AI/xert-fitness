@@ -18,10 +18,10 @@ const returnURLs = {
 function paidSession(overrides = {}) {
   return {
     id: 'cs_test_three_day', mode: 'payment', payment_status: 'paid',
-    amount_total: 3500, currency: 'aud', customer_email: visitor.email,
+    amount_total: 3900, currency: 'aud', customer_email: visitor.email,
     payment_intent: 'pi_test_three_day',
     metadata: {
-      xert_casual_visit: 'true', xert_pass_kind: 'three_day_pass', xert_amount_cents: '3500',
+      xert_casual_visit: 'true', xert_pass_kind: 'three_day_pass', xert_amount_cents: '3900',
       casual_visit_name: 'Casey Example', casual_visit_email: visitor.email,
       casual_visit_phone: '+61400111222', questionnaire_response_id: responseID,
     },
@@ -32,11 +32,11 @@ function paidSession(overrides = {}) {
 test('three-day checkout charges the club\'s price in AUD and describes the purchased pass', () => {
   const parameters = visits.casualVisitCheckoutParameters({
     visitor: visits.normalizeCasualVisitor(visitor), passKind: 'three_day_pass',
-    priceCents: 3500, currency: 'aud', questionnaireResponseId: responseID, returnURLs,
+    priceCents: 3900, currency: 'aud', questionnaireResponseId: responseID, returnURLs,
   });
-  assert.equal(parameters.line_items[0].price_data.unit_amount, 3500);
+  assert.equal(parameters.line_items[0].price_data.unit_amount, 3900);
   // The approved amount travels with the session so the webhook can check it.
-  assert.equal(parameters.metadata.xert_amount_cents, '3500');
+  assert.equal(parameters.metadata.xert_amount_cents, '3900');
   assert.equal(parameters.line_items[0].price_data.currency, 'aud');
   assert.equal(parameters.line_items[0].price_data.product_data.name, 'XERT Fitness Three Day Pass');
   assert.equal(parameters.line_items[0].price_data.product_data.description, 'Three Day Pass — show your receipt to the XERT team.');
@@ -57,7 +57,7 @@ test('unknown pass variants cannot silently become a casual purchase', () => {
 test('paid three-day sessions persist a distinct kind and legacy casual sessions retain their shape', () => {
   const row = visits.casualVisitPaymentFromCheckout(paidSession());
   assert.equal(row.pass_kind, 'three_day_pass');
-  assert.equal(row.amount_cents, 3500);
+  assert.equal(row.amount_cents, 3900);
   assert.equal(row.stripe_checkout_session_id, 'cs_test_three_day');
   assert.equal(row.user_id, undefined);
   assert.equal(row.credits, undefined);
@@ -216,11 +216,11 @@ test('the server checks exact signed questionnaire proof before creating an anon
   }]);
   assert.equal(deps.created.length, 1);
   const { parameters, options } = deps.created[0];
-  assert.equal(parameters.line_items[0].price_data.unit_amount, 3500);
+  assert.equal(parameters.line_items[0].price_data.unit_amount, 3900);
   assert.equal(parameters.success_url, returnURLs.success);
   assert.equal(parameters.cancel_url, returnURLs.cancel);
   assert.match(options.idempotencyKey, /^three-day-/);
-  assert.equal(result.amount_cents, 3500);
+  assert.equal(result.amount_cents, 3900);
   assert.equal(result.url, 'https://checkout.stripe.com/c/pay/cs_test_new');
 });
 

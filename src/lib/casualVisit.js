@@ -7,7 +7,7 @@
 export const CASUAL_VISIT_ACTION = 'casual_visit';
 export const CASUAL_VISIT_METADATA_FLAG = 'xert_casual_visit';
 export const THREE_DAY_PASS_ACTION = 'three_day_pass';
-export const THREE_DAY_PASS_PRICE_CENTS = 3500;
+export const THREE_DAY_PASS_PRICE_CENTS = 3900;
 export const THREE_MONTH_MEMBERSHIP_ACTION = 'three_month_membership';
 export const THREE_MONTH_MEMBERSHIP_PRICE_CENTS = 43000;
 

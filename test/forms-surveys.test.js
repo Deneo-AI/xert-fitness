@@ -152,3 +152,20 @@ test('written answers read as one table, a row per person with their name attach
   // Rendered row/card completeness is checked in admin-forms-render.test.js;
   // browser proofs cover responsive visibility and the frozen person column.
 });
+
+test('an image answer is recognised, and ordinary text is left alone', async () => {
+  const { answerImage } = await import('../src/lib/formAnswers.js');
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+  assert.equal(answerImage(png), png);
+  // Signatures arrive with line breaks in some browsers.
+  assert.equal(answerImage(`data:image/png;base64,iVBOR\n  w0KGg==`), 'data:image/png;base64,iVBORw0KGg==');
+  assert.equal(answerImage('data:image/jpeg;base64,/9j/4AAQ=='), 'data:image/jpeg;base64,/9j/4AAQ==');
+
+  for (const notAnImage of [
+    'Knee injury', '', null, undefined, 42,
+    // Only images: nothing here may turn an answer into an arbitrary embed.
+    'data:text/html;base64,PHNjcmlwdD4=',
+    'javascript:alert(1)',
+    'https://example.test/signature.png',
+  ]) assert.equal(answerImage(notAnImage), null, String(notAnImage));
+});

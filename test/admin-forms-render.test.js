@@ -89,3 +89,32 @@ test('pending full records reserve header, paired metadata and original-answer a
   assert.equal((html.match(/data-form-placeholder="record-answer"/g) || []).length, 2);
   assert.doesNotMatch(html, /<button|<input|<select|<a\s/);
 });
+
+test('a signature is shown as the signature, not as its base64', () => {
+  // A 1x1 PNG stands in for the real thing: what matters is the shape.
+  const signature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const responses = [{ id: 'one', respondent_name: 'Cheryl Harb', answers: { sig: signature, notes: 'Knee injury' } }];
+  const html = renderToStaticMarkup(React.createElement(WrittenAnswers, {
+    responses,
+    questions: [{ id: 'sig', question: 'Participant signature' }, { id: 'notes', question: 'Notes' }],
+  }));
+
+  // It used to print several hundred characters of base64 into a table cell,
+  // which pushed every other column off the screen and told nobody anything.
+  assert.ok(!html.includes('iVBORw0KGgo'.repeat(1) + '"') || html.includes('<img'), 'signature must render as an image');
+  assert.match(html, /<img[^>]+src="data:image\/png;base64,/);
+  assert.match(html, /alt="Participant signature from Cheryl Harb"/);
+  assert.match(html, /class="forms-signature"/);
+  // Ordinary answers are still plain text beside it.
+  assert.match(html, /Knee injury/);
+});
+
+test('the answers table can take the width its columns need', () => {
+  const responses = [{ id: 'one', respondent_name: 'Cheryl Harb', answers: { notes: 'Knee injury' } }];
+  const html = renderToStaticMarkup(React.createElement(WrittenAnswers, {
+    responses, questions: [{ id: 'notes', question: 'Notes' }],
+  }));
+  // A width:100% table inside the scroller squeezed every column toward
+  // nothing, and overflow-wrap finished the job one character per line.
+  assert.ok(!/<table[^>]*class="[^"]*\bw-full\b/.test(html), 'the table must not be forced to the container width');
+});

@@ -5,7 +5,7 @@ import {
   LoaderCircle, Pause, Pencil, Play, Plus, Search, Trash2, X,
 } from 'lucide-react';
 import { activeQuestions, archiveFormResponse, archiveOwnerForm, CHARTABLE_TYPES, CHOICE_TYPES, createField, createFormDraft, FIELD_TYPES, FORM_TYPES, getFormResponse, listFormResponses, listOwnerForms, publicFormURL, responseCSV, saveOwnerForm, slugifyFormTitle, updateFormResponseStatus, validateFormDraft } from '@/lib/xertForms';
-import { answerTable } from '@/lib/formAnswers';
+import { answerImage, answerTable } from '@/lib/formAnswers';
 import AdminConfirmDialog from './AdminConfirmDialog';
 import FormQRCode from './FormQRCode';
 import FormResponseRecord, { FormRecordLoading } from './FormResponseRecord';
@@ -263,6 +263,16 @@ function Analytics({ form, onBack }) {
   </div>;
 }
 /**
+ * One answer. A signature is a PNG data URI, and printing it as text gave a
+ * wall of base64 that squeezed every other column and told nobody anything.
+ */
+function AnswerCell({ value, person, label }) {
+  const image = answerImage(value);
+  if (!image) return value;
+  return <img src={image} alt={`${label} from ${person}`} className="forms-signature" />;
+}
+
+/**
  * Every written answer in one table: a row per person, a column per question.
  * Reading a name against its own phone number was the whole problem with the
  * old side-by-side lists, so the name is frozen in the first column and the
@@ -286,7 +296,7 @@ function WrittenAnswers({ responses, questions }) {
         <dl className="mt-1 space-y-0.5">
           {columns.filter(column => row.cells[column.id]).map(column => <div key={column.id} className="flex flex-wrap gap-x-2 text-sm">
             <dt className="text-text-secondary">{column.label}</dt>
-            <dd className="text-text-secondary">{row.cells[column.id]}</dd>
+            <dd className="text-text-secondary"><AnswerCell value={row.cells[column.id]} person={row.person} label={column.label} /></dd>
           </div>)}
         </dl>
       </li>)}
@@ -294,7 +304,7 @@ function WrittenAnswers({ responses, questions }) {
 
     {/* Everything wider: a real table, name column pinned. */}
     <div tabIndex={0} role="region" aria-label="Written answers table" className="forms-written-table">
-      <table className="w-full border-collapse text-sm">
+      <table className="border-collapse text-sm">
         <caption className="sr-only">Written answers, one row per person</caption>
         <thead>
           <tr>
@@ -308,7 +318,9 @@ function WrittenAnswers({ responses, questions }) {
               <span aria-hidden="true" className="mr-2 font-mono text-xs tabular-nums text-text-secondary">{row.number}</span>{row.person}
             </th>
             {columns.map(column => <td key={column.id} className="border-b border-border-hairline px-3 py-2 text-text-secondary">
-              {row.cells[column.id] || <span className="text-text-secondary">—</span>}
+              {row.cells[column.id]
+                ? <AnswerCell value={row.cells[column.id]} person={row.person} label={column.label} />
+                : <span className="text-text-secondary">&mdash;</span>}
             </td>)}
           </tr>)}
         </tbody>
