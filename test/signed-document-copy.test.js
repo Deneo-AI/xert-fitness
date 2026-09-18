@@ -85,3 +85,28 @@ test('the copy reaches somebody who typed their email into the form, not just th
   // form, which is not what somebody asking for their copy wants.
   assert.match(sql, /www\.xertfitness\.com\.au\/terms/);
 });
+
+test('the letter is written once, and a backfill sends the same one', async () => {
+  const sql = await read('../supabase/migrations/20260918020000_resend_signed_copy.sql');
+
+  // Three people signed while questionnaires were being skipped. Sending their
+  // copy late meant running the trigger's own code, not a hand-copied version
+  // that could word things differently or link somewhere else — so the body
+  // moved into a function both the trigger and the backfill call.
+  assert.match(sql, /create or replace function public\.send_signed_document_copy\(p_response_id uuid\)/);
+  assert.match(sql, /create or replace function public\.email_form_response_copy\(\)[\s\S]*perform public\.send_signed_document_copy\(new\.id\)/);
+  assert.match(sql, /create trigger email_on_form_response/);
+
+  // Running it twice must not send twice: that is what makes a backfill safe
+  // to repeat, and what stopped the one person who already had his copy from
+  // getting a second.
+  assert.match(sql, /if exists \(\s*select 1 from public\.email_log\s*where email_type = 'signed_documents' and related_id = r\.id::text\s*\) then return false; end if;/);
+
+  // Same contact fallback as the trigger fix, and still no send without a
+  // readable address.
+  assert.match(sql, /r\.answers ->> 'e4c4e161-43e3-5462-a865-f27c411ac809'/);
+  assert.match(sql, /if v_email !~ '\^\[\^\\s@\]\+@\[\^\\s@\]\+\\\.\[\^\\s@\]\+\$' then return false; end if;/);
+  // An archived response is not a document anybody should be sent.
+  assert.match(sql, /if not found or r\.archived_at is not null then return false; end if;/);
+  assert.match(sql, /revoke all on function public\.send_signed_document_copy\(uuid\) from public, anon, authenticated/);
+});
