@@ -64,3 +64,24 @@ test('staff choose which forms do this, and a new form does not by default', asy
   assert.match(screen, /label="Email the person a copy"/);
   assert.match(screen, /somebody signs and should keep/);
 });
+
+test('the copy reaches somebody who typed their email into the form, not just the column', async () => {
+  const sql = await read('../supabase/migrations/20260918010000_signed_copy_reads_questionnaire_contact.sql');
+
+  // The questionnaires ask for an email as a question, so it lands in `answers`
+  // and respondent_email stays null. Reading only the column meant the terms
+  // and conditions sent a copy and both pre-exercise questionnaires silently
+  // did not — three of the first four people who signed got nothing.
+  assert.match(sql, /nullif\(btrim\(new\.respondent_email\), ''\),\s*\n\s*new\.answers ->> 'e4c4e161-43e3-5462-a865-f27c411ac809'/);
+  // The name has the same split, so the greeting is not "Hello," for everyone.
+  assert.match(sql, /new\.answers #>> '\{84703ad7-a28d-4904-9868-6c832ce38055,first\}'/);
+  assert.match(sql, /new\.answers #>> '\{84703ad7-a28d-4904-9868-6c832ce38055,last\}'/);
+
+  // An address that is still unreadable must stop the send, not send nowhere.
+  assert.match(sql, /if v_email !~ '\^\[\^\\s@\]\+@\[\^\\s@\]\+\\\.\[\^\\s@\]\+\$' then return new; end if;/);
+  // The trigger is rebuilt, or the fixed function never runs.
+  assert.match(sql, /create trigger email_on_form_response/);
+  // Only the agreement has a page to link; a questionnaire link opens a blank
+  // form, which is not what somebody asking for their copy wants.
+  assert.match(sql, /www\.xertfitness\.com\.au\/terms/);
+});
