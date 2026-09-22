@@ -256,3 +256,23 @@ test('the confirmation carries the handle that releases the spot again', () => {
   assert.equal(paused.title, 'Interest registered');
   assert.match(paused.body, /no spot is held/i);
 });
+
+test('a class confirms sign-ups on the spot unless somebody chooses otherwise', async () => {
+  const { classSessionEditorForm } = await import('../src/lib/scheduling.js');
+  const { classTemplateEditorForm } = await import('../src/lib/classCalendar.js');
+
+  // Manual confirming is not how the club runs: a person books and they are
+  // in. Every existing class was switched to instant_book, so a class added
+  // tomorrow has to arrive the same way — defaulting a new one back to
+  // request_to_book is how a confirm queue quietly reappears.
+  assert.equal(classSessionEditorForm({}).booking_mode, 'instant_book');
+  assert.equal(classTemplateEditorForm({}).booking_mode, 'instant_book');
+  // adminData pulls in the browser client, so read its default as text.
+  const adminData = await readFile(new URL('../src/lib/adminData.js', import.meta.url), 'utf8');
+  assert.match(adminData, /default_booking_mode: 'instant_book'/);
+
+  // A deliberate choice still wins: interest-only and request-to-book remain
+  // available for a class that genuinely needs screening before a place.
+  assert.equal(classSessionEditorForm({ booking_mode: 'request_to_book' }).booking_mode, 'request_to_book');
+  assert.equal(classTemplateEditorForm({ booking_mode: 'interest_only' }).booking_mode, 'interest_only');
+});

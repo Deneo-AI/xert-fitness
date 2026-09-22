@@ -59,7 +59,10 @@ export function classSessionEditorForm(session = {}) {
     intensity_level: String(session.intensity_level || 'Moderate'),
     status: String(session.status || 'draft'),
     public_visible: Boolean(session.public_visible),
-    booking_mode: String(session.booking_mode || 'request_to_book'),
+    // A new class confirms sign-ups on the spot, like every existing one.
+    // Defaulting to request_to_book here quietly reintroduced a confirm queue
+    // every time somebody added a class.
+    booking_mode: String(session.booking_mode || 'instant_book'),
     notes: String(session.notes || ''),
   };
 }

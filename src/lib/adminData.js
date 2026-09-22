@@ -883,7 +883,7 @@ export function getDefaultSettings() {
     max_soft_launch_class_capacity: 12,
     bookings_enabled: false,
     prices_coming_soon: true,
-    default_booking_mode: 'request_to_book',
+    default_booking_mode: 'instant_book',
     show_limited_capacity_badge: true,
     show_opening_in_stages_message: true,
     memberships_enabled: false,

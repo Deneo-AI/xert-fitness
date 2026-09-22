@@ -151,7 +151,7 @@ export function classTemplateEditorForm(template = {}) {
     location_zone: String(template.location_zone || 'Main floor'),
     beginner_friendly: Boolean(template.beginner_friendly),
     intensity_level: INTENSITY_LEVELS.has(template.intensity_level) ? template.intensity_level : 'Moderate',
-    booking_mode: BOOKING_MODES.has(template.booking_mode) ? template.booking_mode : 'request_to_book',
+    booking_mode: BOOKING_MODES.has(template.booking_mode) ? template.booking_mode : 'instant_book',
     default_start: typeof template.default_start === 'string'
       ? template.default_start
       : timeInputFromMinutes(template.default_start_minute),
