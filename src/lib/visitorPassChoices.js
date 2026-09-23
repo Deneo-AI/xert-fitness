@@ -123,11 +123,14 @@ export function visitorDetailsFromSignup(signup = {}) {
  * payments at all.
  *
  * And only when there is something to pay for. A waitlisted sign-up holds no
- * spot, and registered interest is not a booking: asking either of them for
- * money would be taking payment for a class they may never get into.
+ * spot, registered interest is not a booking, and a guest was invited: asking
+ * any of them for money is asking for a class they do not owe for.
  */
 export function shouldOfferVisitorPasses(signup, settings = {}) {
   if (signup?.has_membership !== false) return false;
+  // A bring-a-friend guest owes nothing. Following "your spot is held" with a
+  // list of prices is how a free invitation stops feeling free.
+  if (signup.guest_visit) return false;
   if (settings?.casual_payments_enabled === false) return false;
   if (signup.waitlisted) return false;
   if (signup.bookings_open === false || signup.booking_mode === 'interest_only') return false;

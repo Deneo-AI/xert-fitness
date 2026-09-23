@@ -45,6 +45,10 @@ export default function BookingRequestForm({
   // member from a walk-in. Asking is what lets the confirmation offer a
   // non-member the ways to pay instead of leaving them booked in and stuck.
   const [hasMembership, setHasMembership] = useState(null);
+  // Bring-a-friend days put people in a class who owe nothing. Saying so here
+  // is the only chance to record it: on the floor a guest looks like anybody
+  // else who has not paid yet.
+  const [guestVisit, setGuestVisit] = useState(false);
   const [rejected, setRejected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,12 +65,15 @@ export default function BookingRequestForm({
     setLoading(true);
     setError('');
     try {
-      const result = await submitClassSignup({ ...form, join_waitlist: joinWaitlist });
+      const result = await submitClassSignup({
+        ...form, join_waitlist: joinWaitlist, guest_visit: hasMembership === false && guestVisit,
+      });
       // The answer and their details travel with the result so the page can
       // offer a non-member the passes without asking for any of it twice.
       onSuccess?.({
         ...result,
         has_membership: hasMembership,
+        guest_visit: hasMembership === false && guestVisit,
         full_name: form.full_name, email: form.email, phone: form.phone,
       });
     } catch (submitError) {
@@ -140,9 +147,23 @@ export default function BookingRequestForm({
           ))}
         </div>
         {hasMembership === false && (
-          <p className="mt-2 font-body text-xs text-xert-pale/65">
-            No problem — we will show you the ways to pay once your spot is held.
-          </p>
+          <div className="mt-3 border border-xert-steel/20 p-3">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input type="checkbox" checked={guestVisit}
+                onChange={event => setGuestVisit(event.target.checked)} className="peer sr-only" />
+              <span aria-hidden="true" className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${guestVisit ? 'border-xert-steel bg-xert-steel text-xert-navy' : 'border-xert-steel/40'} peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-xert-offwhite`}>
+                {guestVisit && <span className="text-xs">&#10003;</span>}
+              </span>
+              <span className="font-body text-sm text-xert-offwhite">
+                I am a guest of a member (bring a friend)
+              </span>
+            </label>
+            <p className="mt-2 font-body text-xs leading-relaxed text-xert-pale/65">
+              {guestVisit
+                ? 'Nothing to pay — your spot is held and the team will know you are a guest.'
+                : 'No problem — we will show you the ways to pay once your spot is held.'}
+            </p>
+          </div>
         )}
       </fieldset>
 

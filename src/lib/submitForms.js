@@ -69,6 +69,7 @@ export async function submitClassSignup(formData) {
     p_training_level: formData.training_level || null,
     p_notes: formData.notes || null,
     p_join_waitlist: formData.join_waitlist === true,
+    p_guest_visit: formData.guest_visit === true,
   });
   if (error) throw new Error(error.message);
   return { success: true, ...(data || {}) };

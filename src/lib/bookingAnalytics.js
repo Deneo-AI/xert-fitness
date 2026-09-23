@@ -158,6 +158,7 @@ export function bookingCsvRows(bookings) {
   return (bookings || []).map(booking => ({
     created_at: gymDateTimeLabel(booking.createdAt || booking.created_at),
     source: booking.source === 'member' ? 'Member credit booking' : 'Timetable class request',
+    guest_visit: booking.guest_visit ? 'Yes' : 'No',
     status: booking.status || '',
     name: booking.full_name || '',
     email: booking.email || '',

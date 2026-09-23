@@ -343,6 +343,14 @@ export default function BookingRequestsTable() {
                         : 'Submitted from a class on the public timetable. Website expression-of-interest forms appear under Member Leads.'}>
                       {b.source === 'member' ? 'Member credit booking' : 'Timetable class request'}
                     </span>
+                    {/* A bring-a-friend guest owes nothing at the door, and
+                        without this reads exactly like somebody who does. */}
+                    {b.guest_visit && (
+                      <span title="Invited by a member on a bring-a-friend day. No visit fee owed."
+                        className="font-body text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-status-confirmed-600/40 text-status-confirmed-400">
+                        Guest
+                      </span>
+                    )}
                     {b.source === 'member' && b.credit_batch_id && (
                       <span className="font-body text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-xert-steel/30 text-xert-concrete/40">
                         Credit reserved
