@@ -238,7 +238,6 @@ export default function PublicForm() {
     }).catch(err => active && setError(err.message)).finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [slug]);
-  // Gated forms send a first-time visitor to their prerequisite first.
   // A prerequisite says what leads here, not what bars the door. Sharing the
   // agreement's own link used to bounce the reader to the questionnaire first,
   // so a link sent to somebody who only needed to sign the terms opened a
@@ -262,8 +261,12 @@ export default function PublicForm() {
     [answeredBirthday, carried],
   );
   const formItems = useMemo(() => form?.questions || [], [form]);
+  // Only ask for a parent or guardian once we actually know the member is
+  // under 18. Treating "we have not asked yet" as a reason to show these put a
+  // guardian question, captioned "asked because the member is under 18", in
+  // front of every adult who opened the agreement on its own.
   const notApplicable = useMemo(
-    () => (audience === 'adult' ? formItems.filter(item => item.minor_only).map(item => item.id) : []),
+    () => (audience === 'minor' ? [] : formItems.filter(item => item.minor_only).map(item => item.id)),
     [audience, formItems],
   );
   const formFlow = useMemo(

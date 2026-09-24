@@ -1,8 +1,8 @@
 // ─── Digital terms and conditions acceptance ────────────────────────────────
-// The poster QR code opens /forms/terms-and-conditions. Because the club must
-// screen someone before they train, this form names the PEQ as its
-// prerequisite: opening it sends a first-time visitor through the
-// Pre-Exercise Questionnaire, and the terms open automatically afterwards.
+// The poster QR code opens /forms/terms-and-conditions, and the link is shared
+// on its own. The questionnaire still hands over to this form when it is
+// finished, but this one has to stand up alone: it cannot assume anybody has
+// answered anything before opening it.
 //
 // The wording comes from src/lib/xertTermsAgreement.js so the agreement people
 // accept here is the same one published on the website.
@@ -53,9 +53,16 @@ function decisionQuestions(total) {
     required('tc-signature', 'signature', 'Member signature', {
       description: 'Sign with your finger, mouse or Apple Pencil.',
     }),
-    // No age question here: the date of birth given on the questionnaire
-    // decides it. An adult never sees these two; a member under 18 cannot get
-    // past them without a guardian completing them.
+    // This used to lean on the date of birth given on the questionnaire. Once
+    // the agreement's own link became shareable there was often no
+    // questionnaire behind it, so the form could not tell an adult from a
+    // minor — and showed every adult a parent-or-guardian question that said
+    // "asked because the member is under 18". It asks for itself now, and the
+    // questionnaire's answer still fills it in when there is one.
+    required('tc-date-of-birth', 'date', 'Member date of birth', {
+      prefill: 'date_of_birth',
+      description: 'Confirms whether a parent or guardian also needs to sign.',
+    }),
     field('tc-guardian-name', 'short_text', 'Parent or guardian first and last name', {
       minor_only: true,
       description: 'Asked because the member is under 18.',
@@ -68,7 +75,9 @@ function decisionQuestions(total) {
 }
 
 const blocks = agreementBlocks();
-const questions = [...blocks, ...decisionQuestions(blocks.length + 6)];
+// Seven decision questions now, since the date of birth joined them: the
+// decline branch jumps past the end of the whole list, so this has to count.
+const questions = [...blocks, ...decisionQuestions(blocks.length + 7)];
 
 // This is the record members have been signing since August 2026, when it was
 // titled "Terms and Conditions". It was briefly repurposed as the PEQ; the PEQ

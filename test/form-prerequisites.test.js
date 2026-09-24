@@ -92,8 +92,10 @@ test('the guardian questions follow that answer instead of asking again', async 
   assert.match(source, /const audience = useMemo\(\s*\(\) => minorStatus\(\{ date_of_birth: answeredBirthday \|\| carried\?\.date_of_birth \|\| '' \}\)/);
   // Positions in the published definition drive the skip destinations, so a
   // question that does not apply is skipped rather than removed from the list.
-  assert.match(source, /audience === 'adult' \? formItems\.filter\(item => item\.minor_only\)\.map\(item => item\.id\) : \[\]/,
-    'an adult is never shown a guardian question');
+  // "Not asked yet" is not a reason to ask for a guardian: the agreement's own
+  // link is shared on its own, so there is often no questionnaire behind it.
+  assert.match(source, /audience === 'minor' \? \[\] : formItems\.filter\(item => item\.minor_only\)\.map\(item => item\.id\)/,
+    'a guardian is asked for only once we know the member is under 18');
   assert.match(source, /buildPublicFormSteps\(formItems, answers, notApplicable\)/);
   assert.match(source, /question\?\.minor_only && audience === 'minor'/,
     'a member under 18 cannot continue without one');
@@ -134,9 +136,14 @@ test('the terms form is the agreement, gated behind the PEQ, ending in accept or
   assert.deepEqual(accept.options, ['I accept the Terms and Conditions', 'I decline']);
   assert.deepEqual(accept.skip_rules, [{ option: 'I decline', skip_to: definition.questions.length + 1 }],
     'declining ends the form instead of asking for a signature');
-  // A guardian signature is itself the record of a member under 18, so the
-  // agreement asks for it rather than asking anyone to state their age twice.
-  assert.equal(definition.questions.find(question => question.id === 'tc-minor'), undefined);
+  // The agreement asks for the date of birth itself. It used to rely on the
+  // questionnaire's answer, so once its own link became shareable it could not
+  // tell an adult from a minor and showed everybody a guardian question
+  // captioned "asked because the member is under 18".
+  const birthday = definition.questions.find(question => question.id === 'tc-date-of-birth');
+  assert.equal(birthday.type, 'date');
+  assert.equal(birthday.required, true, 'it decides whether a guardian must sign');
+  assert.equal(birthday.prefill, 'date_of_birth', 'still filled in from the questionnaire when there is one');
   const guardianName = definition.questions.find(question => question.id === 'tc-guardian-name');
   const guardianSignature = definition.questions.find(question => question.id === 'tc-guardian-signature');
   assert.equal(guardianName.required, false);
@@ -146,9 +153,11 @@ test('the terms form is the agreement, gated behind the PEQ, ending in accept or
   assert.equal(heading.content, 'XERT Fitness Terms and Conditions', 'no date in the heading to go stale');
   // The signature block reads as it does on paper: the member is named, then
   // signs, and only then is a guardian asked for a name and a signature.
+  // The date of birth sits before the guardian questions, so by the time those
+  // are reached the form knows whether to ask them at all.
   assert.deepEqual(
-    definition.questions.slice(-4).map(question => question.id),
-    ['tc-member-name', 'tc-signature', 'tc-guardian-name', 'tc-guardian-signature'],
+    definition.questions.slice(-5).map(question => question.id),
+    ['tc-member-name', 'tc-signature', 'tc-date-of-birth', 'tc-guardian-name', 'tc-guardian-signature'],
   );
   const memberName = definition.questions.find(question => question.id === 'tc-member-name');
   assert.equal(memberName.required, true);
@@ -250,4 +259,52 @@ test('a form can hand back to the page that sent someone to it, but only a page 
   const back = page.indexOf('returnPathAfterForm(search)');
   assert.ok(handoff > 0 && back > handoff, 'the follow-on form is offered first');
   assert.match(page, /if \(returnPath\) \{ setHandingOver\(true\); navigate\(returnPath, \{ replace: true \}\); return; \}/);
+});
+
+test('the agreement alone can tell an adult from a minor, and asks accordingly', async () => {
+  const { XERT_TERMS_FORM_DEFINITION } = await import('../src/lib/xertTermsForm.js');
+  const { buildPublicFormSteps } = await import('../src/lib/formBranching.js');
+  const { minorStatus } = await import('../src/lib/formPrerequisites.js');
+
+  const items = XERT_TERMS_FORM_DEFINITION.questions;
+  const guardianIDs = items.filter(item => item.minor_only).map(item => item.id);
+  // What PublicForm does with the audience, exercised against the real form.
+  const stepIDs = audience => {
+    const omitted = audience === 'minor' ? [] : guardianIDs;
+    return buildPublicFormSteps(items, {}, omitted).steps
+      .map(step => step.question?.id).filter(Boolean);
+  };
+
+  // Somebody who opens the agreement on its own and has answered nothing yet:
+  // this is the state that used to show an adult a guardian question captioned
+  // "asked because the member is under 18".
+  assert.equal(minorStatus({ date_of_birth: '' }), 'unknown');
+  for (const id of guardianIDs) {
+    assert.ok(!stepIDs('unknown').includes(id), `${id} must not be asked before we know`);
+    assert.ok(!stepIDs('adult').includes(id), `${id} must never be asked of an adult`);
+    assert.ok(stepIDs('minor').includes(id), `${id} must be asked of a member under 18`);
+  }
+
+  // The date of birth is asked before them, so by the time they could appear
+  // the form knows whether to ask at all.
+  const order = stepIDs('minor');
+  assert.ok(order.indexOf('tc-date-of-birth') < order.indexOf(guardianIDs[0]));
+  assert.equal(minorStatus({ date_of_birth: '1990-04-02' }), 'adult');
+  assert.equal(minorStatus({ date_of_birth: new Date().toISOString().slice(0, 10) }), 'minor');
+});
+
+test('the signed copy carries the signature as an attachment, not the word Signed', async () => {
+  const sql = await read('../supabase/migrations/20260924010000_signed_copy_carries_the_signature.sql');
+
+  // A data: image source is dropped by Gmail and Outlook, so an inline
+  // signature would be a broken box for most people. An attachment opens
+  // anywhere and can be kept.
+  assert.match(sql, /create or replace function public\.form_response_signatures\(p_response_id uuid\)/);
+  assert.match(sql, /'content_type', 'image\/png'/);
+  assert.match(sql, /like 'data:image\/png;base64,%'/, 'anything that is not a PNG data URI is left out');
+  assert.match(sql, /p_attachments jsonb default null/, 'existing callers keep working unchanged');
+  assert.match(sql, /jsonb_build_object\('attachments', p_attachments\)/);
+  // Two overloads would leave positional callers silently sending no signature.
+  assert.match(sql, /drop function if exists public\.queue_email\(text, text, text, text, text, text, text\)/);
+  assert.match(sql, /raise exception 'Signatures must not be readable by anon\.'/);
 });
