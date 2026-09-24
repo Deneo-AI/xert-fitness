@@ -3,8 +3,9 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
   FORM_COMPLETION_TTL_MS, ageInYears, completionIdentity, formPath, minorStatus, nextFormSlug,
-  prerequisiteRedirect, readFormCompletion, returnPathAfterForm, writeFormCompletion,
+  readFormCompletion, returnPathAfterForm, writeFormCompletion,
 } from '../src/lib/formPrerequisites.js';
+import * as formPrerequisites from '../src/lib/formPrerequisites.js';
 import { XERT_TERMS_FORM_DEFINITION, XERT_TERMS_FORM_PREREQUISITE_ID, validateXertTermsFormDefinition } from '../src/lib/xertTermsForm.js';
 import { XERT_PEQ_FORM_ID } from '../src/lib/xertPeqForm.js';
 import { XERT_TERMS_SECTIONS } from '../src/lib/xertTermsAgreement.js';
@@ -15,13 +16,21 @@ const fakeStorage = () => {
   return { getItem: key => (data.has(key) ? data.get(key) : null), setItem: (key, value) => data.set(key, value) };
 };
 
-test('a gated form sends a first-time visitor to its prerequisite and back again', () => {
-  const storage = fakeStorage();
-  const terms = { slug: 'terms-and-conditions', prerequisite_slug: 'peq' };
-  assert.equal(prerequisiteRedirect(terms, { storage }), '/forms/peq?next=terms-and-conditions');
+test('a form link opens that form, whatever comes before it', async () => {
+  // The agreement used to be gated behind the questionnaire, which made its own
+  // link unshareable: sending it to somebody who only had to sign the terms
+  // opened a questionnaire instead. A prerequisite says what leads here, not
+  // what bars the door.
+  assert.equal(formPrerequisites.prerequisiteRedirect, undefined,
+    'the gate is gone, not merely unused');
+  const page = await read('../src/pages/PublicForm.jsx');
+  assert.ok(!page.includes('gatePath'), 'the page must not redirect away from a form somebody opened');
+  assert.ok(!page.includes('comes first.'), 'nor hold them on a screen explaining why');
+
+  // The hand-off the other way is the whole point of the relationship, and
+  // stays: finishing the questionnaire opens the agreement.
   assert.equal(nextFormSlug('?next=terms-and-conditions'), 'terms-and-conditions');
-  writeFormCompletion('peq', { name: 'Cherie Ashby' }, { storage, now: 1_000 });
-  assert.equal(prerequisiteRedirect(terms, { storage, now: 2_000 }), null, 'the gate opens once the PEQ is done');
+  assert.match(page, /nextFormSlug\(search\) \|\| form\.follow_on_slug/);
 });
 
 test('a completion marker expires, and a form without a prerequisite is never gated', () => {
@@ -29,8 +38,6 @@ test('a completion marker expires, and a form without a prerequisite is never ga
   writeFormCompletion('peq', { name: 'Cherie' }, { storage, now: 1_000 });
   assert.equal(readFormCompletion('peq', { storage, now: 1_000 + FORM_COMPLETION_TTL_MS + 1 }), null);
   assert.equal(readFormCompletion('peq', { storage, now: 0 }), null, 'a marker from the future is ignored');
-  assert.equal(prerequisiteRedirect({ slug: 'peq' }, { storage }), null);
-  assert.equal(prerequisiteRedirect({ slug: 'peq', prerequisite_slug: 'peq' }, { storage }), null, 'a form cannot gate itself');
 });
 
 test('untrusted next and slug values can never become a path', () => {
@@ -202,9 +209,8 @@ test('the published agreement and the signed agreement come from one module', as
   assert.match(form, /whitespace-pre-wrap break-words text-sm leading-relaxed/);
 });
 
-test('the public form page enforces the gate, hands over and carries details across', async () => {
+test('the public form page hands over and carries details across', async () => {
   const source = await read('../src/pages/PublicForm.jsx');
-  assert.match(source, /if \(gatePath\) navigate\(gatePath, \{ replace: true \}\)/);
   const storage = fakeStorage();
   writeFormCompletion('peq-casual', { ...completionIdentity([], {}, { name: 'Casey Example', email: 'casey@example.test' }), response_id: '11111111-1111-4111-8111-111111111111' }, { storage });
   assert.equal(readFormCompletion('peq-casual', { storage }).response_id, '11111111-1111-4111-8111-111111111111');

@@ -204,15 +204,17 @@ test('the terms completion marker stores only an acceptance hint beside identity
   }, contact, agreementResponseId).agreement_accepted, true);
 });
 
-test('a prerequisite redirect keeps the allowlisted membership return key', () => {
-  const storage = { getItem: () => null };
-  const terms = { slug: 'terms-and-conditions', prerequisite_slug: 'peq' };
+test('a form hand-off keeps the allowlisted membership return key', () => {
+  // Somebody part-way through paying has to come back to paying, and only to
+  // one of the pages we name — a crafted return key must never bounce them off
+  // the site. The gate that used to build these paths is gone; the allowlist
+  // lives in formPath, which still builds them.
   assert.equal(
-    formPrerequisites.prerequisiteRedirect(terms, { storage, returnKey: '3months' }),
+    formPrerequisites.formPath('peq', 'terms-and-conditions', '3months'),
     '/forms/peq?next=terms-and-conditions&return=3months',
   );
   assert.equal(
-    formPrerequisites.prerequisiteRedirect(terms, { storage, returnKey: 'https://evil.example' }),
+    formPrerequisites.formPath('peq', 'terms-and-conditions', 'https://evil.example'),
     '/forms/peq?next=terms-and-conditions',
   );
 });

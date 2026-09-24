@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Check, ExternalLink, FileUp, LoaderCircle, Star 
 import { answerIsPresent, loadPublicForm, submitPublicForm } from '@/lib/xertForms';
 import { buildPublicFormSteps } from '@/lib/formBranching';
 import {
-  formCompletionMarker, formPath, minorStatus, nextFormSlug, prerequisiteRedirect, readFormCompletion,
+  formCompletionMarker, formPath, minorStatus, nextFormSlug, readFormCompletion,
   returnKeyAfterForm, returnPathAfterForm, writeFormCompletion,
 } from '@/lib/formPrerequisites';
 import { answerValidationMessage, firstInvalidAnswer } from '@/lib/formAnswerValidation';
@@ -239,8 +239,11 @@ export default function PublicForm() {
     return () => { active = false; };
   }, [slug]);
   // Gated forms send a first-time visitor to their prerequisite first.
-  const gatePath = form ? prerequisiteRedirect(form, { returnKey: returnKeyAfterForm(search) }) : null;
-  useEffect(() => { if (gatePath) navigate(gatePath, { replace: true }); }, [gatePath, navigate]);
+  // A prerequisite says what leads here, not what bars the door. Sharing the
+  // agreement's own link used to bounce the reader to the questionnaire first,
+  // so a link sent to somebody who only needed to sign the terms opened a
+  // questionnaire instead. The questionnaire still hands over to the agreement
+  // when it is finished; that is the direction this relationship is for.
   // Skip destinations are indexed against the complete builder sequence, so
   // layout blocks must stay in this calculation even though they do not hold
   // answers. Each statement/section is then displayed with the next question.
@@ -320,7 +323,6 @@ export default function PublicForm() {
     } catch (err) { setError(err.message); } finally { setSubmitting(false); }
   };
   if (loading || handingOver) return <main className="min-h-screen bg-xert-navy grid place-items-center text-xert-pale" role="status"><LoaderCircle className="mr-3 inline h-6 w-6 animate-spin text-xert-steel" /> {handingOver ? 'Saved. Opening the next form…' : 'Loading form…'}</main>;
-  if (gatePath) return <main className="min-h-screen bg-xert-navy grid place-items-center p-6 text-center text-xert-pale" role="status"><div><LoaderCircle className="mx-auto mb-4 h-6 w-6 animate-spin text-xert-steel" /><p className="text-xert-offwhite">{form.prerequisite_title || 'Another form'} comes first.</p><p className="mt-2 text-sm text-xert-pale/60">Taking you there now. {form.title} opens as soon as it is done.</p></div></main>;
   if (!form) return <main className="min-h-screen bg-xert-navy grid place-items-center p-6 text-center"><div><img src="/assets/xert-logo-horizontal-light.png" alt="XERT" className="mx-auto mb-8 h-10" /><h1 className="font-display text-4xl text-white">Form unavailable</h1><p className="mt-3 text-xert-pale/60">This link may be paused, archived or incorrect.</p></div></main>;
   if (submitted) return <main className="min-h-screen bg-xert-navy xert-glow-top grid place-items-center p-6"><section className="xert-card w-full max-w-xl p-8 text-center"><span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-status-success-400/10 text-status-success-300"><Check /></span><h1 className="font-display text-4xl uppercase tracking-wide text-white">Response received</h1><p className="mt-4 text-xert-pale/70">{form.thank_you_message}</p></section></main>;
   const progress = steps.length ? Math.min(100, Math.max(0, step / steps.length * 100)) : 100;

@@ -190,13 +190,9 @@ export function formPath(slug, nextSlug = null, returnKey = null) {
   return `/forms/${encodeURIComponent(slug)}${search}`;
 }
 
-/**
- * Decides where a visitor should be sent when they open a gated form.
- * Returns null when they may stay.
- */
-export function prerequisiteRedirect(form, { storage = safeStorage(), now = Date.now(), returnKey = null } = {}) {
-  const prerequisite = String(form?.prerequisite_slug || '');
-  if (!SLUG_PATTERN.test(prerequisite) || prerequisite === form?.slug) return null;
-  if (readFormCompletion(prerequisite, { storage, now })) return null;
-  return formPath(prerequisite, form.slug, returnKey);
-}
+// A form used to be gated behind its prerequisite: open the agreement and you
+// were redirected to the questionnaire first. That made the agreement's own
+// link unshareable — sending it to somebody who only had to sign the terms
+// opened a questionnaire instead. The relationship is kept for the direction
+// it is actually useful in: finishing the questionnaire hands over to the
+// agreement, which is what `follow_on_slug` reads off the same link.
