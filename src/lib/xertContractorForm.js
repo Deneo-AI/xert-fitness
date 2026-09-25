@@ -77,11 +77,9 @@ function signingQuestions(total) {
   // jump forward, so declining lands past the end of the form.
   const end = total + 1;
   return [
-    section(
-      'ic-90-signing',
-      'Your decision',
-      'Nobody is engaged by reading this page. Your answer below is what counts.',
-    ),
+    // No "Your decision" heading here. The acceptance question says plainly
+    // enough what it is, and a section break in front of it only pushed the
+    // question itself further down the page.
     required('ic-91-accept', 'single_choice', 'Do you accept this Independent Contractor Agreement?', {
       description: 'By accepting, you confirm you have raised any concerns about any part of this agreement, and you agree to commence the relationship from the date you sign below.',
       options: [CONTRACTOR_ACCEPT_OPTION, CONTRACTOR_DECLINE_OPTION],
@@ -118,7 +116,9 @@ const parties = partyQuestions();
 const qualifications = qualificationQuestions();
 const blocks = agreementBlocks();
 const lead = parties.length + qualifications.length + blocks.length;
-const questions = [...parties, ...qualifications, ...blocks, ...signingQuestions(lead + 9)];
+// Eight signing fields now the decision heading has gone, and the decline
+// branch jumps past the end of the whole list, so this has to count.
+const questions = [...parties, ...qualifications, ...blocks, ...signingQuestions(lead + 8)];
 
 export const XERT_CONTRACTOR_FORM_DEFINITION = Object.freeze({
   title: XERT_CONTRACTOR_TITLE,
