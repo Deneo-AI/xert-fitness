@@ -29,7 +29,7 @@ export const INPUT_TYPES = new Set(FIELD_TYPES.filter(field => field.group !== '
 export function createField(type = 'short_text') {
   return {
     id: crypto.randomUUID(), type, question: '', description: '', required: false,
-    hidden: false, placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'],
+    hidden: false, allow_already_provided: false, placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'],
     allow_other: false, scale_min: type === 'nps' ? 0 : 1, scale_max: type === 'star_rating' ? 5 : 10,
     scale_min_label: '', scale_max_label: '', media_type: null, media_url: '',
     media_caption: '', correct_answer: null, points: 0, content: '', skip_rules: [],

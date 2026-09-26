@@ -6,6 +6,8 @@
 // mirror the server's so the same answer is caught at the question it belongs
 // to, while it is still on screen.
 
+import { isAlreadyProvided } from './formAlreadyProvided.js';
+
 export const ANSWER_LIMITS = Object.freeze({
   short_text: 1000,
   long_text: 20000,
@@ -32,6 +34,8 @@ function present(value) {
 /** Returns a message for an answer the database would reject, else null. */
 export function answerValidationMessage(question, value) {
   if (!question || !present(value)) return null;
+  // The tick is a valid answer in its own right, not a malformed email.
+  if (isAlreadyProvided(question, value)) return null;
   const type = String(question.type || '');
   const limit = ANSWER_LIMITS[type];
   if (limit && text(value).length > limit) {

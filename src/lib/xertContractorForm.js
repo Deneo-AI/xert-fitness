@@ -42,8 +42,10 @@ function partyQuestions() {
       options: [...XERT_CONTRACTOR_BUSINESS_TYPES],
       description: 'Only if you trade under a registered company. Leave blank if you are a sole trader.',
     }),
-    required('ic-05-phone', 'phone', 'Phone number', { prefill: 'phone' }),
-    required('ic-06-email', 'email', 'Email address', { prefill: 'email' }),
+    // Both were given at the start of the form, so the contractor can tick
+    // rather than type them again.
+    required('ic-05-phone', 'phone', 'Phone number', { prefill: 'phone', allow_already_provided: true }),
+    required('ic-06-email', 'email', 'Email address', { prefill: 'email', allow_already_provided: true }),
   ];
 }
 

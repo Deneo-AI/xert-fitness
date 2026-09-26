@@ -9,6 +9,7 @@ import {
   returnKeyAfterForm, returnPathAfterForm, writeFormCompletion,
 } from '@/lib/formPrerequisites';
 import { answerValidationMessage, firstInvalidAnswer } from '@/lib/formAnswerValidation';
+import { ALREADY_PROVIDED_ANSWER, offersAlreadyProvided } from '@/lib/formAlreadyProvided';
 
 const inputClass = 'xert-input';
 const errorStyle = { color: 'var(--state-danger-text)', borderColor: 'var(--state-danger-text-35)', backgroundColor: 'var(--state-danger-text-8)' };
@@ -161,7 +162,26 @@ function SignatureInput({ value, onChange }) {
   );
 }
 
+// Wraps any text-type field that offers "Already provided". Ticking it hides
+// the input rather than filling it, so an email field is never left holding
+// words that are not an email, and unticking brings the input straight back.
 function AnswerInput({ question, value, onChange }) {
+  if (!offersAlreadyProvided(question)) return <FieldAnswerInput question={question} value={value} onChange={onChange} />;
+  const ticked = value === ALREADY_PROVIDED_ANSWER;
+  return (
+    <div>
+      {ticked
+        ? <p className="rounded-xl border border-xert-steel/30 px-4 py-3 text-sm text-xert-pale/70">Marked as already provided.</p>
+        : <FieldAnswerInput question={question} value={value} onChange={onChange} />}
+      <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm text-xert-pale/85">
+        <input type="checkbox" className="h-5 w-5 shrink-0 accent-xert-steel" checked={ticked} onChange={event => onChange(event.target.checked ? ALREADY_PROVIDED_ANSWER : '')} />
+        Already provided
+      </label>
+    </div>
+  );
+}
+
+function FieldAnswerInput({ question, value, onChange }) {
   const options = question.type === 'yes_no' ? ['Yes', 'No'] : question.options || [];
   if (question.type === 'long_text') return <textarea rows={6} className={inputClass} value={value || ''} placeholder={question.placeholder || ''} onChange={event => onChange(event.target.value)} />;
   if (['short_text', 'email', 'phone', 'url', 'number', 'date', 'time', 'datetime'].includes(question.type)) {
