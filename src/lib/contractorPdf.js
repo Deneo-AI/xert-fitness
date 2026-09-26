@@ -15,7 +15,8 @@
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import {
-  XERT_CONTRACTOR_PARTIES, XERT_CONTRACTOR_QUALIFICATIONS, XERT_CONTRACTOR_SECTIONS,
+  XERT_CONTRACTOR_BUSINESS_TYPES, XERT_CONTRACTOR_PARTIES, XERT_CONTRACTOR_QUALIFICATIONS,
+  XERT_CONTRACTOR_SECTIONS,
   XERT_CONTRACTOR_SERVICES, XERT_CONTRACTOR_SUBTITLE, XERT_CONTRACTOR_TITLE,
 } from './xertContractorAgreement.js';
 
@@ -200,6 +201,16 @@ function drawBlank(sheet, { name, label, value, form, height = 20, width = CONTE
 }
 
 function drawTickList(sheet, { title, note, options, name, selected, form, radio = false }) {
+  // Measure the whole group first. Splitting a three-option choice across a
+  // page break leaves an orphan option under a heading it has lost, so if the
+  // group fits on a fresh page it starts on one.
+  const optionHeight = options.reduce((total, option) => total
+    + Math.max(14, wrapText(option, sheet.fonts.regular, SIZE.body, CONTENT_WIDTH - 22).length
+      * LEADING.body) + 3, 0);
+  const groupHeight = 8 + LEADING.heading + (note ? LEADING.body : 0) + 4 + optionHeight;
+  const fitsOnAFreshPage = groupHeight <= PAGE.height - MARGIN.top - MARGIN.bottom;
+  if (fitsOnAFreshPage && sheet.y - groupHeight < MARGIN.bottom) sheet.newPage();
+
   sheet.gap(8);
   sheet.text(title, { size: SIZE.heading, font: sheet.fonts.bold, leading: LEADING.heading });
   if (note) sheet.text(note, { size: SIZE.label, colour: INK.muted });
@@ -319,13 +330,14 @@ function drawFooter(sheet, { mode }) {
  * @param {Record<string, string>} [options.values]     answers, keyed by question id
  * @param {string[]} [options.qualifications]           ticked qualification options
  * @param {string} [options.service]                    chosen service
+ * @param {string} [options.businessType]               Pty Ltd, Ltd, or nothing
  * @param {string} [options.accepted]                   the acceptance answer
  * @param {string} [options.marketing]                  the marketing consent answer
  * @param {Record<string, Uint8Array>} [options.signatures] PNG bytes per signature id
  * @returns {Promise<Uint8Array>}
  */
 export async function renderContractorPdf({
-  mode = 'interactive', values = {}, qualifications = [], service = null,
+  mode = 'interactive', values = {}, qualifications = [], service = null, businessType = null,
   accepted = null, marketing = null, signatures = null,
 } = {}) {
   const doc = await PDFDocument.create();
@@ -349,6 +361,16 @@ export async function renderContractorPdf({
   sheet.text('Your details', { size: SIZE.heading, font: fonts.bold, leading: LEADING.heading });
   for (const detail of DETAIL_FIELDS) {
     drawBlank(sheet, { ...detail, name: detail.id, value: values[detail.id], form });
+    // The company type belongs with the business name it describes, not in a
+    // section of its own further down the page.
+    if (detail.id === 'ic-04-business-name') {
+      drawTickList(sheet, {
+        title: 'Is the business a company?',
+        note: 'Only if you trade under a registered company. Leave blank if you are a sole trader.',
+        options: [...XERT_CONTRACTOR_BUSINESS_TYPES],
+        name: 'ic-04b-business-type', selected: businessType, form, radio: true,
+      });
+    }
   }
 
   drawTickList(sheet, {

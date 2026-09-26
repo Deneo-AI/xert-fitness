@@ -22,6 +22,13 @@ export const XERT_CONTRACTOR_QUALIFICATIONS = Object.freeze([
   'Blue Card (14 year olds are permitted to engage in group classes; required up to 17 years)',
 ]);
 
+// Pty Ltd is a proprietary limited company, Ltd a public one. A sole trader
+// is neither, which is why leaving this blank has to stay an answer.
+export const XERT_CONTRACTOR_BUSINESS_TYPES = Object.freeze([
+  'Pty Ltd',
+  'Ltd',
+]);
+
 export const XERT_CONTRACTOR_SERVICES = Object.freeze([
   'Group Fitness & Personal Training',
   'Group Fitness Only',

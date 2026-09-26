@@ -11,7 +11,8 @@
 
 import { field, required, section, statement, validateXertFormDefinition } from './xertFormFields.js';
 import {
-  XERT_CONTRACTOR_PARTIES, XERT_CONTRACTOR_QUALIFICATIONS, XERT_CONTRACTOR_SECTIONS,
+  XERT_CONTRACTOR_BUSINESS_TYPES, XERT_CONTRACTOR_PARTIES, XERT_CONTRACTOR_QUALIFICATIONS,
+  XERT_CONTRACTOR_SECTIONS,
   XERT_CONTRACTOR_SERVICES, XERT_CONTRACTOR_SUBTITLE, XERT_CONTRACTOR_TITLE,
   contractorSectionText,
 } from './xertContractorAgreement.js';
@@ -34,6 +35,12 @@ function partyQuestions() {
     }),
     field('ic-04-business-name', 'short_text', 'Business name', {
       description: 'If you trade under one. Leave blank if you do not.',
+    }),
+    // Asked alongside the business name rather than folded into it, because
+    // the company type is what tells us who we are actually contracting with.
+    field('ic-04b-business-type', 'single_choice', 'Is the business a company?', {
+      options: [...XERT_CONTRACTOR_BUSINESS_TYPES],
+      description: 'Only if you trade under a registered company. Leave blank if you are a sole trader.',
     }),
     required('ic-05-phone', 'phone', 'Phone number', { prefill: 'phone' }),
     required('ic-06-email', 'email', 'Email address', { prefill: 'email' }),

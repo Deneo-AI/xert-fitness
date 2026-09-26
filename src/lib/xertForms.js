@@ -91,8 +91,20 @@ export function validateFormDraft(form) {
 }
 
 function throwIfError(error) {
-  if (error) throw new Error(error.message || 'The forms service could not complete the request.');
+  if (!error) return;
+  // Keep the provider's code and details on the way out. Dropping them meant
+  // callers had to guess at the cause from the message text, and a save
+  // conflict reached the editor as "Cannot coerce the result to a single JSON
+  // object" instead of anything a person could act on.
+  const wrapped = new Error(error.message || 'The forms service could not complete the request.');
+  wrapped.code = error.code;
+  wrapped.details = error.details;
+  throw wrapped;
 }
+
+/** A save that lost a race with another editor, rather than a broken request. */
+export const FORM_CHANGED_ELSEWHERE = 'FORM_CHANGED_ELSEWHERE';
+export const FORM_DELETED_ELSEWHERE = 'FORM_DELETED_ELSEWHERE';
 
 export async function listOwnerForms() {
   const { data, error } = await supabase.from('xert_forms').select('*').is('archived_at', null).order('updated_at', { ascending: false }).limit(200);
@@ -114,9 +126,24 @@ export async function saveOwnerForm(form) {
   payload.prerequisite_form_id = payload.prerequisite_form_id || null;
   payload.header_media_type = payload.header_media_type || null;
   if (form.id) {
-    const { data, error } = await supabase.from('xert_forms').update(payload).eq('id', form.id).eq('updated_at', form.updated_at).select('*').single();
+    // maybeSingle, not single: a save that matches no row is a conflict with
+    // whoever changed the form first, not a malformed request, and it should
+    // not surface as a coercion error.
+    const { data, error } = await supabase.from('xert_forms').update(payload)
+      .eq('id', form.id).eq('updated_at', form.updated_at).select('*').maybeSingle();
     throwIfError(error);
-    return data;
+    if (data) return data;
+
+    // Nothing matched. Either the row moved on, or it is gone entirely, and
+    // the difference decides whether reopening it is any use.
+    const { data: current, error: lookupError } = await supabase.from('xert_forms')
+      .select('id, updated_at').eq('id', form.id).maybeSingle();
+    throwIfError(lookupError);
+    const conflict = new Error(current
+      ? 'This form was changed somewhere else after you opened it. Reload it to get the latest version, then make your changes again.'
+      : 'This form has been deleted, so there is nothing left to save to.');
+    conflict.code = current ? FORM_CHANGED_ELSEWHERE : FORM_DELETED_ELSEWHERE;
+    throw conflict;
   }
   const { data, error } = await supabase.from('xert_forms').insert(payload).select('*').single();
   throwIfError(error);

@@ -83,6 +83,7 @@ export function shapeResponse(row) {
         'ic-06-email', 'ic-92-contractor-name', 'ic-94-commencement'].map(id => [id, read(id)])),
     qualifications: Array.isArray(ticked) ? ticked : [ticked].filter(Boolean),
     service: read(SERVICE_ID) || null,
+    businessType: read('ic-04b-business-type') || null,
     accepted: read(ACCEPT_ID) || null,
     marketing: read(MARKETING_ID) || null,
     signatures: Object.keys(signatures).length ? signatures : null,
@@ -112,7 +113,7 @@ if (flag('signed')) {
     },
     qualifications: [XERT_CONTRACTOR_QUALIFICATIONS[0], XERT_CONTRACTOR_QUALIFICATIONS[3],
       XERT_CONTRACTOR_QUALIFICATIONS[4]],
-    service: XERT_CONTRACTOR_SERVICES[0],
+    service: XERT_CONTRACTOR_SERVICES[0], businessType: 'Pty Ltd',
     accepted: 'I accept this agreement', marketing: 'Yes, I consent',
   });
   await writeFile(out, bytes);

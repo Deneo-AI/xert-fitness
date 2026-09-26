@@ -100,3 +100,15 @@ test('a signed copy is emailed, and the record prints as a document', async () =
   assert.match(record, /Print \/ Save PDF/);
   assert.match(record, /xert-response-print-record/);
 });
+
+test('the business type sits with the business name and is optional', () => {
+  const type = byId('ic-04b-business-type');
+  assert.ok(type, 'the Pty Ltd / Ltd question is missing');
+  assert.equal(type.type, 'single_choice');
+  assert.deepEqual(type.options, ['Pty Ltd', 'Ltd']);
+  // A sole trader has neither, so requiring an answer would block them.
+  assert.equal(type.required, false);
+  const ids = definition.questions.map(question => question.id);
+  assert.equal(ids.indexOf('ic-04b-business-type'), ids.indexOf('ic-04-business-name') + 1,
+    'it belongs directly under the business name it describes');
+});
